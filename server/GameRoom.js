@@ -525,12 +525,30 @@ class GameRoom {
     victim.streak = 0;
     victim.respawnAt = Date.now() + RESPAWN_DELAY;
 
+    // Immediately record victim death in career stats
+    if (!victim.isBot) {
+      const updatedVictim = LeaderboardStore.recordDeath(victim.name);
+      victim.elo = updatedVictim.elo;
+      victim.badge = updatedVictim.badge;
+      victim.tier = updatedVictim.tier;
+      victim.rankColor = updatedVictim.color;
+    }
+
     const killer = this.findTankById(killerId);
     if (killer && killer.id !== victim.id) {
       killer.kills += 1;
       killer.score += 100;
       killer.streak += 1;
       if (killer.streak > killer.maxStreak) killer.maxStreak = killer.streak;
+
+      // Immediately record killer kill & ELO gain in career stats
+      if (!killer.isBot) {
+        const updatedKiller = LeaderboardStore.recordKill(killer.name, killer.streak);
+        killer.elo = updatedKiller.elo;
+        killer.badge = updatedKiller.badge;
+        killer.tier = updatedKiller.tier;
+        killer.rankColor = updatedKiller.color;
+      }
 
       // Broadcast kill feed item
       this.addKillFeed(killer.name, victim.name, weaponId, killer.streak);

@@ -130,7 +130,7 @@ io.on('connection', (socket) => {
 
 server.listen(PORT, () => {
   console.log(`===============================================`);
-  console.log(`🎮 TANK WARS ARENA (Fatih ile Oyun)`);
+  console.log(`🎮 TANK WARS ARENA`);
   console.log(`🚀 Sunucu çalışıyor: http://localhost:${PORT}`);
   console.log(`===============================================`);
 });

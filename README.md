@@ -1,4 +1,4 @@
-# 🎮 TANK WARS ARENA (Fatih ile Oyun)
+# 🎮 TANK WARS ARENA
 
 2D, çok oyunculu (multiplayer), akıllı yapay zeka (bot) destekli, mermi sektirmeli ve lig/sıralama (ELO) sistemli rekabetçi web tank savaşı oyunu!
 

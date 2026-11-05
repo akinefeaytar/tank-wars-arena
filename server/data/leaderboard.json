@@ -1,13 +1,13 @@
 {
-  "fatih_komutan": {
-    "name": "Fatih_Komutan",
+  "general_viper": {
+    "name": "General_Viper",
     "elo": 2450,
     "kills": 1420,
     "deaths": 410,
     "wins": 88,
     "matches": 110,
     "highestStreak": 14,
-    "badge": "🔮",
+    "badge": "\ud83d\udd2e",
     "tier": "Elmas",
     "color": "#b33939",
     "lastPlayed": 1793805387457
@@ -20,7 +20,7 @@
     "wins": 56,
     "matches": 75,
     "highestStreak": 9,
-    "badge": "💎",
+    "badge": "\ud83d\udc8e",
     "tier": "Platin",
     "color": "#00e5ff",
     "lastPlayed": 1793835498146
@@ -33,7 +33,7 @@
     "wins": 41,
     "matches": 62,
     "highestStreak": 7,
-    "badge": "💎",
+    "badge": "\ud83d\udc8e",
     "tier": "Platin",
     "color": "#00e5ff",
     "lastPlayed": 1793813958817
@@ -46,10 +46,10 @@
     "wins": 30,
     "matches": 50,
     "highestStreak": 5,
-    "badge": "🥇",
-    "tier": "Altın",
+    "badge": "\ud83e\udd47",
+    "tier": "Alt\u0131n",
     "color": "#ffd700",
-    "lastPlayed": 1793801089446
+    "lastPlayed": 1793829000000
   },
   "ates_hatti": {
     "name": "Ates_Hatti",
@@ -59,23 +59,23 @@
     "wins": 18,
     "matches": 35,
     "highestStreak": 4,
-    "badge": "🥈",
-    "tier": "Gümüş",
+    "badge": "\ud83e\udd48",
+    "tier": "G\u00fcm\u00fc\u015f",
     "color": "#c0c0c0",
-    "lastPlayed": 1793833064996
+    "lastPlayed": 1793825000000
   },
-  "zırhlı_birlik": {
-    "name": "Zırhlı_Birlik",
+  "zirhli_birlik": {
+    "name": "Z\u0131rhl\u0131_Birlik",
     "elo": 1150,
     "kills": 210,
     "deaths": 180,
     "wins": 11,
     "matches": 25,
     "highestStreak": 3,
-    "badge": "🥈",
-    "tier": "Gümüş",
+    "badge": "\ud83e\udd48",
+    "tier": "G\u00fcm\u00fc\u015f",
     "color": "#c0c0c0",
-    "lastPlayed": 1793829332390
+    "lastPlayed": 1793815000000
   },
   "caylak_tankci": {
     "name": "Caylak_Tankci",
@@ -85,61 +85,9 @@
     "wins": 3,
     "matches": 15,
     "highestStreak": 2,
-    "badge": "🥉",
+    "badge": "\ud83e\udd49",
     "tier": "Bronz",
     "color": "#cd7f32",
-    "lastPlayed": 1793824996035
-  },
-  "komutan_210": {
-    "name": "Komutan_210",
-    "elo": 1000,
-    "kills": 0,
-    "deaths": 0,
-    "wins": 0,
-    "matches": 0,
-    "highestStreak": 0,
-    "badge": "🥈",
-    "tier": "Gümüş",
-    "color": "#c0c0c0",
-    "lastPlayed": 1793872755154
-  },
-  "komutan_846": {
-    "name": "Komutan_846",
-    "elo": 1000,
-    "kills": 0,
-    "deaths": 0,
-    "wins": 0,
-    "matches": 0,
-    "highestStreak": 0,
-    "badge": "🥈",
-    "tier": "Gümüş",
-    "color": "#c0c0c0",
-    "lastPlayed": 1793873967275
-  },
-  "akinbabapro": {
-    "name": "akinbabapro",
-    "elo": 1000,
-    "kills": 0,
-    "deaths": 0,
-    "wins": 0,
-    "matches": 0,
-    "highestStreak": 0,
-    "badge": "🥈",
-    "tier": "Gümüş",
-    "color": "#c0c0c0",
-    "lastPlayed": 1793873971475
-  },
-  "porno_starı": {
-    "name": "porno_starı",
-    "elo": 1000,
-    "kills": 0,
-    "deaths": 0,
-    "wins": 0,
-    "matches": 0,
-    "highestStreak": 0,
-    "badge": "🥈",
-    "tier": "Gümüş",
-    "color": "#c0c0c0",
-    "lastPlayed": 1793873998271
+    "lastPlayed": 1793800000000
   }
 }

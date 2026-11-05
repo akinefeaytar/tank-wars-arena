@@ -24,6 +24,7 @@ class LeaderboardStore {
         const raw = fs.readFileSync(DATA_FILE, 'utf8');
         const parsed = JSON.parse(raw);
         for (const [key, val] of Object.entries(parsed)) {
+          if (!val || !val.name) continue;
           this.players.set(key.toLowerCase(), val);
         }
       }
@@ -31,7 +32,7 @@ class LeaderboardStore {
       console.error('Error loading leaderboard data:', err.message);
     }
 
-    // Seed default champions if empty so the leaderboard is instantly lively
+    // Seed default champions if empty so the leaderboard is lively
     if (this.players.size === 0) {
       this.seedDefaultRankings();
     }
@@ -51,7 +52,7 @@ class LeaderboardStore {
 
   seedDefaultRankings() {
     const defaults = [
-      { name: 'Fatih_Komutan', elo: 2450, kills: 1420, deaths: 410, wins: 88, matches: 110, streak: 14 },
+      { name: 'General_Viper', elo: 2450, kills: 1420, deaths: 410, wins: 88, matches: 110, streak: 14 },
       { name: 'Ghost_Panzer', elo: 2180, kills: 980, deaths: 350, wins: 56, matches: 75, streak: 9 },
       { name: 'Demir_Yumruk', elo: 1920, kills: 740, deaths: 310, wins: 41, matches: 62, streak: 7 },
       { name: 'Sniper_Alpha', elo: 1650, kills: 520, deaths: 270, wins: 30, matches: 50, streak: 5 },
@@ -116,23 +117,48 @@ class LeaderboardStore {
     return this.players.get(key);
   }
 
+  // Real-time immediate kill recording
+  recordKill(killerName, currentStreak = 1) {
+    const record = this.getOrCreatePlayer(killerName);
+    record.kills += 1;
+    const streakBonus = currentStreak >= 3 ? 5 : 0;
+    record.elo = Math.max(100, record.elo + 15 + streakBonus);
+    if (currentStreak > record.highestStreak) {
+      record.highestStreak = currentStreak;
+    }
+    const tier = this.getTierForElo(record.elo);
+    record.badge = tier.badge;
+    record.tier = tier.name;
+    record.color = tier.color;
+    record.lastPlayed = Date.now();
+    this.saveData();
+    return record;
+  }
+
+  // Real-time immediate death recording
+  recordDeath(victimName) {
+    const record = this.getOrCreatePlayer(victimName);
+    record.deaths += 1;
+    record.elo = Math.max(100, record.elo - 8);
+    const tier = this.getTierForElo(record.elo);
+    record.badge = tier.badge;
+    record.tier = tier.name;
+    record.color = tier.color;
+    record.lastPlayed = Date.now();
+    this.saveData();
+    return record;
+  }
+
   recordMatch(matchSummary) {
-    // matchSummary: [{ name, kills, deaths, score, won, maxStreak, isBot }]
     for (const entry of matchSummary) {
-      if (entry.isBot) continue; // Only persist human player stats
+      if (entry.isBot) continue;
       
       const record = this.getOrCreatePlayer(entry.name);
-      record.kills += entry.kills || 0;
-      record.deaths += entry.deaths || 0;
       record.matches += 1;
-      if (entry.won) record.wins += 1;
-      if (entry.maxStreak && entry.maxStreak > record.highestStreak) {
-        record.highestStreak = entry.maxStreak;
+      if (entry.won) {
+        record.wins += 1;
+        record.elo += 30; // Match victory bonus
       }
-
-      // ELO Calculation: Kills (+15), Deaths (-8), Win (+30), Match participation (+5)
-      const eloGain = (entry.kills * 15) - (entry.deaths * 8) + (entry.won ? 30 : 5);
-      record.elo = Math.max(100, record.elo + eloGain);
 
       const tier = this.getTierForElo(record.elo);
       record.badge = tier.badge;
@@ -166,4 +192,3 @@ class LeaderboardStore {
 }
 
 module.exports = new LeaderboardStore();
-
