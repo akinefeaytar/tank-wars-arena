@@ -53,6 +53,7 @@ class GameRoom {
     this.lastTickTime = Date.now();
     this.lastPowerupSpawn = Date.now();
     this.killFeed = [];
+    this.destroyedBricks = [];
 
     // Colors for tanks
     this.playerColors = [
@@ -687,6 +688,7 @@ class GameRoom {
         if (this.map.brickHealth[key] <= 0) {
           this.map.grid[r][c] = 0; // Destroy block!
           delete this.map.brickHealth[key];
+          this.destroyedBricks.push([r, c]);
           destroyedBrick = true;
           // Chance to drop powerup from destroyed brick crate!
           if (Math.random() < 0.35) {
@@ -752,6 +754,7 @@ class GameRoom {
     this.bullets = [];
     this.powerups = [];
     this.killFeed = [];
+    this.destroyedBricks = [];
     this.timeRemaining = this.matchDuration;
     this.map = MapData.generateMap(this.mapId);
     this.spawnInitialPowerups();
@@ -812,7 +815,7 @@ class GameRoom {
         mapId: this.map.mapId,
         cols: this.map.cols,
         rows: this.map.rows,
-        grid: this.map.grid
+        destroyedBricks: this.destroyedBricks
       },
       tanks: this.getAllTanks().map(t => ({
         id: t.id,
@@ -820,6 +823,8 @@ class GameRoom {
         isBot: t.isBot,
         x: Math.round(t.x * 10) / 10,
         y: Math.round(t.y * 10) / 10,
+        vx: Math.round(t.vx * 10) / 10,
+        vy: Math.round(t.vy * 10) / 10,
         angle: Math.round(t.angle * 100) / 100,
         turretAngle: Math.round(t.turretAngle * 100) / 100,
         color: t.color,
@@ -839,9 +844,11 @@ class GameRoom {
       })),
       bullets: this.bullets.map(b => ({
         id: b.id,
-        x: Math.round(b.x),
-        y: Math.round(b.y),
-        angle: b.angle,
+        x: Math.round(b.x * 10) / 10,
+        y: Math.round(b.y * 10) / 10,
+        vx: Math.round(b.vx * 10) / 10,
+        vy: Math.round(b.vy * 10) / 10,
+        angle: Math.round(b.angle * 100) / 100,
         color: b.color,
         radius: b.radius,
         weaponId: b.weaponId
@@ -849,8 +856,8 @@ class GameRoom {
       powerups: this.powerups.map(pu => ({
         id: pu.id,
         type: pu.type,
-        x: pu.x,
-        y: pu.y,
+        x: Math.round(pu.x),
+        y: Math.round(pu.y),
         color: pu.color,
         icon: pu.icon
       })),

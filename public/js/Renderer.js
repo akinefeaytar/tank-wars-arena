@@ -22,14 +22,15 @@ class Renderer {
 
     if (!gameState || !gameState.map) return;
 
-    // 1. Center camera on local player tank
+    // 1. Center camera smoothly on local player tank
     const localTank = gameState.tanks.find(t => t.id === localPlayerId);
     if (localTank) {
-      // Smooth camera interpolation
-      const targetCamX = localTank.x - this.canvas.width / 2;
-      const targetCamY = localTank.y - this.canvas.height / 2;
-      this.camera.x += (targetCamX - this.camera.x) * 0.12;
-      this.camera.y += (targetCamY - this.camera.y) * 0.12;
+      const targetX = localTank.renderX !== undefined ? localTank.renderX : localTank.x;
+      const targetY = localTank.renderY !== undefined ? localTank.renderY : localTank.y;
+      const targetCamX = targetX - this.canvas.width / 2;
+      const targetCamY = targetY - this.canvas.height / 2;
+      this.camera.x += (targetCamX - this.camera.x) * 0.16;
+      this.camera.y += (targetCamY - this.camera.y) * 0.16;
     }
 
     // Apply screen shake
@@ -41,7 +42,7 @@ class Renderer {
     }
 
     ctx.save();
-    ctx.translate(-this.camera.x + shakeX, -this.camera.y + shakeY);
+    ctx.translate(-Math.round(this.camera.x) + shakeX, -Math.round(this.camera.y) + shakeY);
 
     // 2. Render Arena Ground & Grid
     this.renderGround(ctx, gameState.map);
@@ -54,7 +55,7 @@ class Renderer {
     // 4. Render Powerups
     this.renderPowerups(ctx, gameState.powerups);
 
-    // 5. Render Tanks
+    // 5. Render Tanks (Smooth Interpolated)
     this.renderTanks(ctx, gameState.tanks, localPlayerId);
 
     // 6. Render Bullets
@@ -65,7 +66,7 @@ class Renderer {
       particles.renderParticles(ctx);
     }
 
-    // 8. Render Map Tiles (Steel, Brick, Bushes)
+    // 8. Render Map Tiles (Optimized Viewport Culling)
     this.renderTiles(ctx, gameState.map);
 
     ctx.restore();
@@ -82,22 +83,25 @@ class Renderer {
     ctx.fillStyle = '#121822';
     ctx.fillRect(0, 0, mapW, mapH);
 
-    // Tactical ground grid
+    // Tactical ground grid (Batched into a single draw call for max FPS)
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.035)';
     ctx.lineWidth = 1;
+    ctx.beginPath();
 
-    for (let x = 0; x <= mapW; x += this.tileSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, mapH);
-      ctx.stroke();
+    const minX = Math.max(0, Math.floor(this.camera.x / this.tileSize) * this.tileSize);
+    const maxX = Math.min(mapW, Math.ceil((this.camera.x + this.canvas.width) / this.tileSize) * this.tileSize);
+    const minY = Math.max(0, Math.floor(this.camera.y / this.tileSize) * this.tileSize);
+    const maxY = Math.min(mapH, Math.ceil((this.camera.y + this.canvas.height) / this.tileSize) * this.tileSize);
+
+    for (let x = minX; x <= maxX; x += this.tileSize) {
+      ctx.moveTo(x, minY);
+      ctx.lineTo(x, maxY);
     }
-    for (let y = 0; y <= mapH; y += this.tileSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(mapW, y);
-      ctx.stroke();
+    for (let y = minY; y <= maxY; y += this.tileSize) {
+      ctx.moveTo(minX, y);
+      ctx.lineTo(maxX, y);
     }
+    ctx.stroke();
 
     // Outer boundary hazard border
     ctx.strokeStyle = '#ff3366';
@@ -106,9 +110,17 @@ class Renderer {
   }
 
   renderTiles(ctx, map) {
+    if (!map.grid) return;
     const grid = map.grid;
-    for (let r = 0; r < map.rows; r++) {
-      for (let c = 0; c < map.cols; c++) {
+
+    // Viewport Culling: Only draw visible tiles!
+    const minCol = Math.max(0, Math.floor((this.camera.x - 60) / this.tileSize));
+    const maxCol = Math.min(map.cols - 1, Math.ceil((this.camera.x + this.canvas.width + 60) / this.tileSize));
+    const minRow = Math.max(0, Math.floor((this.camera.y - 60) / this.tileSize));
+    const maxRow = Math.min(map.rows - 1, Math.ceil((this.camera.y + this.canvas.height + 60) / this.tileSize));
+
+    for (let r = minRow; r <= maxRow; r++) {
+      for (let c = minCol; c <= maxCol; c++) {
         const tile = grid[r][c];
         if (tile === 0) continue;
 
@@ -160,13 +172,17 @@ class Renderer {
       }
     }
   }
-
   renderTanks(ctx, tanks, localPlayerId) {
     for (const tank of tanks) {
       if (tank.health <= 0) continue;
 
+      const posX = tank.renderX !== undefined ? tank.renderX : tank.x;
+      const posY = tank.renderY !== undefined ? tank.renderY : tank.y;
+      const bodyAngle = tank.renderAngle !== undefined ? tank.renderAngle : tank.angle;
+      const aimAngle = tank.renderTurretAngle !== undefined ? tank.renderTurretAngle : tank.turretAngle;
+
       ctx.save();
-      ctx.translate(tank.x, tank.y);
+      ctx.translate(posX, posY);
 
       // Dash trail glow
       if (tank.isDashing) {
@@ -183,7 +199,7 @@ class Renderer {
 
       // 1. Tank Chassis (Hull & Treads)
       ctx.save();
-      ctx.rotate(tank.angle);
+      ctx.rotate(bodyAngle);
 
       // Left & Right Treads
       ctx.fillStyle = '#181e26';
@@ -218,7 +234,7 @@ class Renderer {
 
       // 2. Turret & Cannon Barrel
       ctx.save();
-      ctx.rotate(tank.turretAngle);
+      ctx.rotate(aimAngle);
 
       // Cannon Barrel
       const barrelLen = tank.weaponId === 'sniper' ? 38 : (tank.weaponId === 'rocket' ? 28 : 30);
@@ -307,8 +323,11 @@ class Renderer {
 
   renderBullets(ctx, bullets) {
     for (const b of bullets) {
+      const posX = b.renderX !== undefined ? b.renderX : b.x;
+      const posY = b.renderY !== undefined ? b.renderY : b.y;
+
       ctx.save();
-      ctx.translate(b.x, b.y);
+      ctx.translate(posX, posY);
       ctx.rotate(b.angle);
 
       ctx.shadowColor = b.color;
