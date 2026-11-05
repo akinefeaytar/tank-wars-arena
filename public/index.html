@@ -27,9 +27,9 @@
       <!-- Player Profile Preview -->
       <div class="player-profile-preview">
         <div class="profile-rank">
-          <span id="profileBadge" class="rank-badge-icon">🥉</span>
+          <span id="profileBadge" class="rank-badge-icon">🥈</span>
           <div>
-            <div id="profileTier" class="rank-name">Bronz Birlik</div>
+            <div id="profileTier" class="rank-name">Gümüş Birlik</div>
             <div style="font-size: 11px; color: var(--text-muted);">Mevcut Derecen</div>
           </div>
         </div>
@@ -265,6 +265,40 @@
         <button id="btnCloseLeaderboard" class="close-btn">&times;</button>
       </div>
       <div class="modal-body">
+        <!-- Rank Tiers Overview Grid -->
+        <div class="rank-tiers-grid">
+          <div class="tier-card" style="border-color: #cd7f32;">
+            <div class="tier-badge">🥉</div>
+            <div class="tier-name" style="color: #cd7f32;">Bronz</div>
+            <div class="tier-range">0 - 999 ELO</div>
+          </div>
+          <div class="tier-card" style="border-color: #c0c0c0;">
+            <div class="tier-badge">🥈</div>
+            <div class="tier-name" style="color: #c0c0c0;">Gümüş</div>
+            <div class="tier-range">1000 - 1399 ELO</div>
+          </div>
+          <div class="tier-card" style="border-color: #ffd700;">
+            <div class="tier-badge">🥇</div>
+            <div class="tier-name" style="color: #ffd700;">Altın</div>
+            <div class="tier-range">1400 - 1799 ELO</div>
+          </div>
+          <div class="tier-card" style="border-color: #00e5ff;">
+            <div class="tier-badge">💎</div>
+            <div class="tier-name" style="color: #00e5ff;">Platin</div>
+            <div class="tier-range">1800 - 2299 ELO</div>
+          </div>
+          <div class="tier-card" style="border-color: #b33939;">
+            <div class="tier-badge">🔮</div>
+            <div class="tier-name" style="color: #b33939;">Elmas</div>
+            <div class="tier-range">2300 - 2799 ELO</div>
+          </div>
+          <div class="tier-card" style="border-color: #ff0055;">
+            <div class="tier-badge">👑</div>
+            <div class="tier-name" style="color: #ff0055;">Apex Tanker</div>
+            <div class="tier-range">2800+ ELO</div>
+          </div>
+        </div>
+
         <table class="leaderboard-table">
           <thead>
             <tr>

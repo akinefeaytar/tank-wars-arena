@@ -209,7 +209,19 @@ class UIManager {
 
   updateLeaderboardModal(leaderboard) {
     const tbody = document.getElementById('leaderboardModalBody');
-    if (!tbody || !leaderboard) return;
+    if (!tbody) return;
+
+    if (!leaderboard || leaderboard.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 40px 10px; color: var(--text-muted); font-size: 15px;">
+            🎖️ Henüz online oyuncu kaydı bulunmuyor.<br>
+            <span style="color: var(--accent-cyan); font-size: 13px; margin-top: 6px; display: inline-block;">Savaşa girip ilk leşini alarak sıralamada 1 numara ol!</span>
+          </td>
+        </tr>
+      `;
+      return;
+    }
 
     tbody.innerHTML = leaderboard.map(p => `
       <tr>

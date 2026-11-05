@@ -341,6 +341,44 @@ body, html {
   padding-right: 6px;
 }
 
+/* Rank Tiers Overview Grid */
+.rank-tiers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.tier-card {
+  background: rgba(10, 15, 25, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 6px;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tier-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.tier-badge {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.tier-name {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.tier-range {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 /* Leaderboard Table */
 .leaderboard-table {
   width: 100%;

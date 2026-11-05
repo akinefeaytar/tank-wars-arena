@@ -31,11 +31,6 @@ class LeaderboardStore {
     } catch (err) {
       console.error('Error loading leaderboard data:', err.message);
     }
-
-    // Seed default champions if empty so the leaderboard is lively
-    if (this.players.size === 0) {
-      this.seedDefaultRankings();
-    }
   }
 
   saveData() {
@@ -48,36 +43,6 @@ class LeaderboardStore {
     } catch (err) {
       console.error('Error saving leaderboard data:', err.message);
     }
-  }
-
-  seedDefaultRankings() {
-    const defaults = [
-      { name: 'General_Viper', elo: 2450, kills: 1420, deaths: 410, wins: 88, matches: 110, streak: 14 },
-      { name: 'Ghost_Panzer', elo: 2180, kills: 980, deaths: 350, wins: 56, matches: 75, streak: 9 },
-      { name: 'Demir_Yumruk', elo: 1920, kills: 740, deaths: 310, wins: 41, matches: 62, streak: 7 },
-      { name: 'Sniper_Alpha', elo: 1650, kills: 520, deaths: 270, wins: 30, matches: 50, streak: 5 },
-      { name: 'Ates_Hatti', elo: 1380, kills: 380, deaths: 240, wins: 18, matches: 35, streak: 4 },
-      { name: 'Zırhlı_Birlik', elo: 1150, kills: 210, deaths: 180, wins: 11, matches: 25, streak: 3 },
-      { name: 'Caylak_Tankci', elo: 950, kills: 85, deaths: 120, wins: 3, matches: 15, streak: 2 }
-    ];
-
-    for (const d of defaults) {
-      const rankInfo = this.getTierForElo(d.elo);
-      this.players.set(d.name.toLowerCase(), {
-        name: d.name,
-        elo: d.elo,
-        kills: d.kills,
-        deaths: d.deaths,
-        wins: d.wins,
-        matches: d.matches,
-        highestStreak: d.streak,
-        badge: rankInfo.badge,
-        tier: rankInfo.name,
-        color: rankInfo.color,
-        lastPlayed: Date.now() - Math.floor(Math.random() * 86400000)
-      });
-    }
-    this.saveData();
   }
 
   getTierForElo(elo) {
