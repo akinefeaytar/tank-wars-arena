@@ -423,12 +423,16 @@ class Renderer {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(-10, -1, 18, 2);
       } else if (b.weaponId === 'flamethrower') {
-        // Fiery expanding flame burst
+        // Crisp stylized fireball burst
         ctx.shadowColor = '#ff4500';
-        ctx.shadowBlur = 14;
-        ctx.fillStyle = Math.random() < 0.5 ? '#ffcc00' : '#ff4500';
+        ctx.shadowBlur = 6;
+        ctx.fillStyle = '#ff6b35';
         ctx.beginPath();
-        ctx.arc(0, 0, b.radius + (Math.random() * 2), 0, Math.PI * 2);
+        ctx.arc(0, 0, b.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fffa65';
+        ctx.beginPath();
+        ctx.arc(0, 0, b.radius * 0.5, 0, Math.PI * 2);
         ctx.fill();
       } else if (b.weaponId === 'cluster' || b.weaponId === 'cluster_shard') {
         // Neon green explosive bomblet

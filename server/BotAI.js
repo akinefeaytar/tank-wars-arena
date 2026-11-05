@@ -172,7 +172,8 @@ class BotAI {
       const angleDiff = Math.abs(this.normalizeAngle(botTank.turretAngle - aimAngle));
       
       const fireAngleTolerance = this.difficulty === 'hard' ? 0.35 : 0.25;
-      if (hasLOS && angleDiff < fireAngleTolerance && dist < 850) {
+      const maxFireDist = (botTank.weapon && botTank.weapon.id === 'flamethrower') ? 240 : 850;
+      if (hasLOS && angleDiff < fireAngleTolerance && dist < maxFireDist) {
         result.shoot = true;
       }
     }

@@ -488,6 +488,7 @@ class GameRoom {
       bouncesLeft: weapon.bounces || 0,
       color: weapon.color,
       weaponId: weapon.id,
+      lifetime: weapon.lifetime || BULLET_LIFETIME,
       explosionRadius: weapon.explosionRadius || 0,
       isCluster: !!weapon.isCluster,
       pierceLeft: weapon.pierce || 0,
@@ -500,7 +501,8 @@ class GameRoom {
     const survivingBullets = [];
 
     for (const b of this.bullets) {
-      if (now - b.createdAt > BULLET_LIFETIME) continue;
+      const maxLife = b.lifetime || BULLET_LIFETIME;
+      if (now - b.createdAt > maxLife) continue;
 
       let nextX = b.x + b.vx;
       let nextY = b.y + b.vy;
@@ -990,6 +992,7 @@ class GameRoom {
       })),
       bullets: this.bullets.map(b => ({
         id: b.id,
+        ownerId: b.ownerId,
         x: Math.round(b.x * 10) / 10,
         y: Math.round(b.y * 10) / 10,
         vx: Math.round(b.vx * 10) / 10,

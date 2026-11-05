@@ -105,12 +105,13 @@ module.exports = {
     FLAMETHROWER: {
       id: 'flamethrower',
       name: 'Termal Alev Topu',
-      damage: 15,
-      speed: 10,
-      radius: 7,
+      damage: 14,
+      speed: 11,
+      radius: 6,
+      lifetime: 450, // Kısa menzilli gerçekçi alev konisi (ekranı kaplamaz)
       shots: 3,
-      spread: 0.35,
-      reloadTime: 180,
+      spread: 0.32,
+      reloadTime: 240,
       duration: 12000,
       color: '#ff4500'
     },

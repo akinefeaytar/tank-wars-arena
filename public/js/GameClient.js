@@ -365,8 +365,14 @@ class GameClient {
 
     for (const [id, oldB] of this.prevBullets) {
       if (!currentBulletIds.has(id)) {
-        this.particles.addExplosion(oldB.x, oldB.y, oldB.weaponId === 'rocket' ? 60 : 25, oldB.color);
-        window.audioManager.playExplosion(oldB.weaponId === 'rocket');
+        if (oldB.weaponId === 'rocket' || oldB.weaponId === 'plasma' || oldB.weaponId === 'cluster' || oldB.weaponId === 'cluster_shard') {
+          this.particles.addExplosion(oldB.x, oldB.y, oldB.weaponId === 'rocket' ? 50 : 35, oldB.color, true);
+          window.audioManager.playExplosion(oldB.weaponId === 'rocket');
+        } else if (oldB.weaponId === 'flamethrower') {
+          this.particles.addFlamePuff(oldB.x, oldB.y);
+        } else {
+          this.particles.addHitSparks(oldB.x, oldB.y, oldB.color);
+        }
       }
     }
 
