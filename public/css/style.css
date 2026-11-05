@@ -671,6 +671,10 @@ body, html {
   display: block;
 }
 
+#menuScreen:not(.hidden) ~ #scoreboardOverlay {
+  display: none !important;
+}
+
 /* Victory / Game Over Overlay */
 #matchEndOverlay {
   position: absolute;

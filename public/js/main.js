@@ -396,11 +396,24 @@ document.addEventListener('DOMContentLoaded', () => {
   function leaveGameToLobby() {
     client.leaveGame();
     closePauseMenu();
+    if (window.UI) {
+      window.UI.toggleScoreboard(false);
+    }
     gameHUD.classList.add('hidden');
     menuScreen.classList.remove('hidden');
     window.history.replaceState({}, '', '/');
     loadPlayerProfile(nameInput.value.trim());
     window.UI.showToast('Lobidesiniz.');
+  }
+
+  // Scoreboard Close Button
+  const btnCloseScoreboardOverlay = document.getElementById('btnCloseScoreboardOverlay');
+  if (btnCloseScoreboardOverlay) {
+    btnCloseScoreboardOverlay.addEventListener('click', () => {
+      if (window.UI) {
+        window.UI.toggleScoreboard(false);
+      }
+    });
   }
 
   if (btnLeaveMatch) {
@@ -452,9 +465,17 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        // Close any open modals first
+        // Close scoreboard or modals first
+        if (window.UI && window.UI.isTabOpen) {
+          window.UI.toggleScoreboard(false);
+          return;
+        }
         if (leaderboardModal && leaderboardModal.classList.contains('active')) {
           leaderboardModal.classList.remove('active');
+          return;
+        }
+        if (garageModal && garageModal.classList.contains('active')) {
+          garageModal.classList.remove('active');
           return;
         }
         if (guideModal && guideModal.classList.contains('active')) {

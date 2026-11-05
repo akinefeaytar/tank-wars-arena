@@ -11,5 +11,18 @@
     "tier": "Gümüş",
     "color": "#c0c0c0",
     "lastPlayed": 1793877507768
+  },
+  "gattouz": {
+    "name": "gattouz",
+    "elo": 1022,
+    "kills": 2,
+    "deaths": 1,
+    "wins": 0,
+    "matches": 0,
+    "highestStreak": 2,
+    "badge": "🥈",
+    "tier": "Gümüş",
+    "color": "#c0c0c0",
+    "lastPlayed": 1793879084258
   }
 }

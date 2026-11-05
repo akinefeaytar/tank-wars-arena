@@ -204,7 +204,15 @@ class GameClient {
         case 'Space':
           this.inputState.shoot = false;
           break;
+        case 'Tab':
+          e.preventDefault();
+          window.UI.toggleScoreboard(false);
+          break;
       }
+    });
+
+    window.addEventListener('blur', () => {
+      window.UI.toggleScoreboard(false);
     });
 
     window.addEventListener('mousemove', (e) => {
@@ -422,6 +430,9 @@ class GameClient {
     this.latestServerState = null;
     this.tanksMap.clear();
     this.bulletsMap.clear();
+    if (window.UI) {
+      window.UI.toggleScoreboard(false);
+    }
   }
 
   createRoom(roomConfig, callback) {
