@@ -1,0 +1,28 @@
+{
+  "name": "tank-wars-arena",
+  "version": "1.0.0",
+  "description": "2D Multiplayer Competitive Tank War Arena with Bots and Live Rankings",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js",
+    "tunnel": "npx localtunnel --port 3000"
+  },
+  "keywords": [
+    "tank",
+    "multiplayer",
+    "game",
+    "2d",
+    "socketio",
+    "bots",
+    "ranked"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "uuid": "^11.1.0",
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TANK WARS ARENA | Rekabetçi 2D Tank Savaşı</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Teko:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Ambient Grid Background -->
+  <div class="bg-grid"></div>
+
+  <!-- Game Canvas -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Main Menu / Lobby Screen -->
+  <div id="menuScreen" class="menu-screen">
+    <div class="menu-card">
+      <span class="title-badge">Online & Bot Destekli</span>
+      <h1 class="game-title">TANK WARS</h1>
+      <p class="game-subtitle">2D Rekabetçi Savaş Arenası • Sıralama & Ligler</p>
+
+      <!-- Player Profile Preview -->
+      <div class="player-profile-preview">
+        <div class="profile-rank">
+          <span id="profileBadge" class="rank-badge-icon">🥉</span>
+          <div>
+            <div id="profileTier" class="rank-name">Bronz Birlik</div>
+            <div style="font-size: 11px; color: var(--text-muted);">Mevcut Derecen</div>
+          </div>
+        </div>
+        <div class="profile-elo">
+          ELO Puanı: <span id="profileEloVal">1000</span>
+        </div>
+      </div>
+
+      <!-- Player Nickname Input -->
+      <div class="input-group">
+        <label class="input-label" for="playerNameInput">KOMUTAN TAKMA ADINIZ</label>
+        <input type="text" id="playerNameInput" class="cyber-input" placeholder="Adını gir..." maxlength="16">
+      </div>
+
+      <!-- Join with Room Code -->
+      <div class="input-group" style="margin-bottom: 20px;">
+        <label class="input-label" for="joinRoomCodeInput">ARKADAŞININ ODA KODU (İsteğe Bağlı)</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="joinRoomCodeInput" class="cyber-input" placeholder="Örn: X7K9P" style="text-transform: uppercase;">
+          <button id="btnJoinWithCode" class="cyber-btn btn-secondary" style="width: auto; padding: 0 18px; font-size: 14px;">Katıl</button>
+        </div>
+      </div>
+
+      <!-- Main Buttons -->
+      <div class="btn-grid">
+        <button id="btnQuickPlay" class="cyber-btn btn-primary">
+          ⚔️ Hızlı Savaşa Katıl
+        </button>
+
+        <button id="btnOpenCreateModal" class="cyber-btn btn-secondary">
+          🛡️ Arkadaşlarınla Özel Oda Aç
+        </button>
+
+        <div class="secondary-actions">
+          <button id="btnOpenLeaderboard" class="cyber-btn btn-outline">
+            🏆 Sıralama
+          </button>
+          <button id="btnOpenGuide" class="cyber-btn btn-outline">
+            📖 Rehber
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- In-Game HUD Overlay -->
+  <div id="gameHUD" class="hidden">
+    <!-- Top Bar -->
+    <div class="hud-top-bar">
+      <!-- Match Info -->
+      <div class="match-status-card">
+        <div class="timer-box">
+          <span id="hudTimer" class="timer-val">05:00</span>
+          <span class="timer-lbl">Kalan Süre</span>
+        </div>
+        <div class="room-info-box">
+          <div id="hudRoomTitle" class="room-title">Genel Savaş Arenası</div>
+          <span id="hudRoomCode" class="room-code-tag" title="Tıkla ve davet linkini kopyala">#PUBLIC (Davet Kopyala)</span>
+        </div>
+        <button id="btnLeaveMatch" class="hud-leave-btn" title="Maçtan Ayrıl (ESC)">🚪 Ayrıl</button>
+      </div>
+
+      <!-- Realtime Kill Feed -->
+      <div id="killFeedContainer" class="kill-feed-container"></div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="hud-bottom-bar">
+      <!-- Player Status -->
+      <div class="player-status-panel">
+        <div class="bar-group">
+          <div class="bar-label-row">
+            <span>GÖVDE SAĞLIĞI (HP)</span>
+            <span id="hudHealthVal">100 / 100</span>
+          </div>
+          <div class="bar-bg">
+            <div id="hudHealthFill" class="bar-fill health-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <div class="bar-group">
+          <div class="bar-label-row">
+            <span>KALKAN ENERJİSİ</span>
+            <span id="hudShieldVal">0 / 50</span>
+          </div>
+          <div class="bar-bg">
+            <div id="hudShieldFill" class="bar-fill shield-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="abilities-row">
+          <div class="ability-box">
+            <div class="ability-icon ability-ready">⚡</div>
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted);">NİTRO (SHIFT)</div>
+              <div style="color: var(--accent-cyan); font-weight: 700;">HAZIR</div>
+            </div>
+          </div>
+
+          <div class="ability-box" style="margin-left: auto;">
+            <div class="ability-icon">💣</div>
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted);">SİLAH</div>
+              <div id="hudWeaponName" style="color: var(--accent-gold); font-weight: 700;">Standart Top</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="hudScoreStats" style="font-size: 12px; color: var(--text-muted); margin-top: 10px; text-align: center;">
+          Skor: 0 | Leş: 0 | Seri: 0
+        </div>
+      </div>
+
+      <!-- Tactical Minimap -->
+      <div class="minimap-wrapper">
+        <canvas id="minimapCanvas" width="160" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- In-Game Tactical Chat -->
+  <div class="in-game-chat">
+    <div id="chatLog" class="chat-log"></div>
+    <input type="text" id="chatInput" class="chat-input" placeholder="Sohbet etmek için ENTER'a basın..." maxlength="70">
+  </div>
+
+  <!-- TAB Scoreboard Overlay -->
+  <div id="scoreboardOverlay">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h2 style="font-size: 22px; color: var(--accent-cyan); text-transform: uppercase;">MAÇ SKOR TABLOSU</h2>
+      <span style="font-size: 12px; color: var(--text-muted);">TAB Tuşunu bırakınca kapanır</span>
+    </div>
+    <table class="leaderboard-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>OYUNCU</th>
+          <th>PUAN</th>
+          <th>LEŞ</th>
+          <th>ÖLÜM</th>
+          <th>SERİ</th>
+        </tr>
+      </thead>
+      <tbody id="scoreboardBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Match End / Victory Screen -->
+  <div id="matchEndOverlay">
+    <div class="victory-card">
+      <div style="font-size: 40px; margin-bottom: 6px;">🏆</div>
+      <h1 class="victory-title">MAÇ TAMAMLANDI!</h1>
+      <p style="color: var(--text-muted); margin-bottom: 20px;">Zafer Kazanan: <span id="matchWinnerName" style="color: #fff; font-weight: 800;">-</span></p>
+
+      <table class="leaderboard-table" style="margin-bottom: 20px;">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>OYUNCU</th>
+            <th>LEŞ</th>
+            <th>ÖLÜM</th>
+            <th>SKOR</th>
+          </tr>
+        </thead>
+        <tbody id="matchEndScoreboard"></tbody>
+      </table>
+
+      <p style="font-size: 13px; color: var(--accent-cyan);">Yeni tur birazdan başlayacak...</p>
+    </div>
+  </div>
+
+  <!-- Modal: In-Game Pause / Exit Menu -->
+  <div id="pauseMenuModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 420px; text-align: center;">
+      <div class="modal-header" style="justify-content: center; position: relative;">
+        <h2 class="modal-title" style="letter-spacing: 2px;">OYUN DURAKLATILDI</h2>
+        <button id="btnClosePauseModal" class="close-btn" style="position: absolute; right: 0;">&times;</button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; padding: 10px 0;">
+        <button id="btnResumeGame" class="cyber-btn btn-primary">
+          ▶️ Savaşa Devam Et (ESC)
+        </button>
+        <button id="btnPauseLeaderboard" class="cyber-btn btn-outline">
+          🏆 Sıralama & Lig Durumu
+        </button>
+        <button id="btnConfirmLeaveGame" class="cyber-btn btn-secondary" style="border-color: var(--accent-red); color: var(--accent-red); background: rgba(255, 51, 102, 0.12);">
+          🚪 Maçtan Ayrıl & Lobiye Dön
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Create Custom Room for Friends -->
+  <div id="createRoomModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">ÖZEL ODA OLUŞTUR</h2>
+        <button id="btnCloseCreateModal" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group">
+          <label class="input-label" for="customRoomName">ODA BAŞLIĞI</label>
+          <input type="text" id="customRoomName" class="cyber-input" value="Fatih ve Arkadaşları">
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="customMapSelect">HARİTA SEÇİMİ</label>
+          <select id="customMapSelect" class="cyber-input">
+            <option value="classic">Savaş Meydanı (Classic)</option>
+            <option value="urban">Şehir Labirenti (Urban Maze)</option>
+            <option value="desert">Çöl Kalesi (Desert Fortress)</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="customBotCount">YAPAY ZEKA (BOT) SAYISI: <span id="botCountVal">4</span></label>
+          <input type="range" id="customBotCount" min="0" max="8" value="4" style="width: 100%; accent-color: var(--accent-cyan);" oninput="document.getElementById('botCountVal').textContent = this.value">
+          <span style="font-size: 11px; color: var(--text-muted);">Arkadaşların odaya katıldıkça botlar yerlerini arkadaşlarınıza devreder.</span>
+        </div>
+
+        <button id="btnConfirmCreateRoom" class="cyber-btn btn-primary" style="margin-top: 20px;">
+          🚀 Odayı Başlat & Kodu Al
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Global Leaderboard -->
+  <div id="leaderboardModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 750px;">
+      <div class="modal-header">
+        <h2 class="modal-title">🏆 KÜRESEL SIRALAMA & LİGLER</h2>
+        <button id="btnCloseLeaderboard" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>KOMUTAN</th>
+              <th>ELO</th>
+              <th>LEŞ</th>
+              <th>ÖLÜM</th>
+              <th>K/D</th>
+              <th>ZAFER</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardModalBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Guide / How to Play -->
+  <div id="guideModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">📖 NASIL OYNANIR?</h2>
+        <button id="btnCloseGuide" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body" style="font-size: 15px; line-height: 1.6; color: #cfd8dc;">
+        <h3 style="color: var(--accent-cyan); margin-bottom: 8px;">🎮 Kontroller</h3>
+        <ul style="margin-left: 20px; margin-bottom: 16px;">
+          <li><b>W, A, S, D</b> veya <b>Yön Tuşları:</b> Tank Gövdesini Sür</li>
+          <li><b>Fare Hareketi:</b> Namluyu Bağımsız Hedefe Çevir</li>
+          <li><b>Sol Tık / Boşluk:</b> Topu Ateşle</li>
+          <li><b>Shift / Sağ Tık:</b> Nitro Ani Hızlanma (Dash)</li>
+          <li><b>TAB:</b> Maç Canlı Skor Tablosu</li>
+          <li><b>ENTER:</b> Taktiksel Sohbet</li>
+        </ul>
+
+        <h3 style="color: var(--accent-gold); margin-bottom: 8px;">🔥 Taktikler & Güçlendirmeler</h3>
+        <ul style="margin-left: 20px; margin-bottom: 16px;">
+          <li><b>Mermi Sektirme:</b> Çelik duvarlara çarpan mermiler açılı olarak seker! Köşe arkasındaki düşmanları sürpriz açılardan vurun.</li>
+          <li><b>Kırılabilir Tuğlalar:</b> Tuğla duvarları top atışlarıyla patlatıp gizli geçitler açabilir ve içinden çıkan güçlendirmeleri toplayabilirsiniz.</li>
+          <li><b>Çalılar:</b> Çalıların içine girip kamufle olun ve pusu kurun!</li>
+          <li><b>Güçlendirmeler:</b> Üçlü Atış, Ağır Sniper Raygun, Güdümlü Roket, Enerji Kalkanı ve Tamir Kitlerini toplayarak üstünlük kurun.</li>
+        </ul>
+
+        <h3 style="color: var(--accent-orange); margin-bottom: 8px;">🏅 Sıralama & Lig Sistemi</h3>
+        <p>Her öldürme ve maç zaferi ELO puanınızı yükseltir. Bronz birlikten başlayıp <b>Apex Tanker</b> tahtına ulaşın!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.IO Client -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Game Scripts -->
+  <script src="js/AudioManager.js"></script>
+  <script src="js/ParticleSystem.js"></script>
+  <script src="js/Renderer.js"></script>
+  <script src="js/UI.js"></script>
+  <script src="js/GameClient.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
+
