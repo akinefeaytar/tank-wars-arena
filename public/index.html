@@ -60,7 +60,11 @@
         </button>
 
         <button id="btnOpenCreateModal" class="cyber-btn btn-secondary">
-          🛡️ Arkadaşlarınla Özel Oda Aç
+          🛡️ Özel Oda Kur (Takım & Zorluk Seçimi)
+        </button>
+
+        <button id="btnOpenGarageModal" class="cyber-btn btn-outline" style="border-color: var(--accent-gold); color: var(--accent-gold);">
+          🎨 Tankını Özelleştir (Garaj)
         </button>
 
         <div class="secondary-actions">
@@ -92,6 +96,9 @@
         <button id="btnLeaveMatch" class="hud-leave-btn" title="Maçtan Ayrıl (ESC)">🚪 Ayrıl</button>
       </div>
 
+      <!-- Team Score Banner (for TDM mode) -->
+      <div id="hudTeamScoreBanner" class="match-status-card" style="display: none; align-items: center; justify-content: center; padding: 10px 24px; gap: 8px;"></div>
+
       <!-- Realtime Kill Feed -->
       <div id="killFeedContainer" class="kill-feed-container"></div>
     </div>
@@ -121,19 +128,27 @@
         </div>
 
         <div class="abilities-row">
-          <div class="ability-box">
-            <div class="ability-icon ability-ready">⚡</div>
+          <div class="ability-box" title="Shift veya Fare Sağ Tık ile ileri doğru hızlıca depar atın">
+            <div id="hudDashIcon" class="ability-icon ability-ready">⚡</div>
             <div>
-              <div style="font-size: 11px; color: var(--text-muted);">NİTRO (SHIFT)</div>
-              <div style="color: var(--accent-cyan); font-weight: 700;">HAZIR</div>
+              <div style="font-size: 10px; color: var(--text-muted); font-weight: 700;">SHIFT: DEPAR</div>
+              <div id="hudDashStatus" style="color: var(--accent-cyan); font-weight: 700; font-size: 13px;">HAZIR</div>
             </div>
           </div>
 
-          <div class="ability-box" style="margin-left: auto;">
+          <div class="ability-box" title="E tuşuna basarak 2.5 saniye mermi geçirmez enerji bariyeri açın">
+            <div id="hudBarrierIcon" class="ability-icon ability-ready">🛡️</div>
+            <div>
+              <div style="font-size: 10px; color: var(--text-muted); font-weight: 700;">E: KALKAN</div>
+              <div id="hudBarrierStatus" style="color: var(--accent-cyan); font-weight: 700; font-size: 13px;">HAZIR</div>
+            </div>
+          </div>
+
+          <div class="ability-box" style="margin-left: auto;" title="Boşluk veya Fare Sol Tık ile ateş edin">
             <div class="ability-icon">💣</div>
             <div>
-              <div style="font-size: 11px; color: var(--text-muted);">SİLAH</div>
-              <div id="hudWeaponName" style="color: var(--accent-gold); font-weight: 700;">Standart Top</div>
+              <div style="font-size: 10px; color: var(--text-muted); font-weight: 700;">BOŞLUK: ATEŞ</div>
+              <div id="hudWeaponName" style="color: var(--accent-gold); font-weight: 700; font-size: 13px;">Standart Top</div>
             </div>
           </div>
         </div>
@@ -236,6 +251,23 @@
         </div>
 
         <div class="input-group">
+          <label class="input-label" for="customModeSelect">OYUN MODU</label>
+          <select id="customModeSelect" class="cyber-input">
+            <option value="ffa">⚔️ Herkes Tek (FFA Arena)</option>
+            <option value="tdm">🛡️ Takımlı Savaş (TDM - Kırmızı vs Mavi)</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="customBotDiffSelect">BOT ZORLUK SEVİYESİ</label>
+          <select id="customBotDiffSelect" class="cyber-input">
+            <option value="easy">🟢 Kolay (Düşük isabet, yavaş tepki)</option>
+            <option value="normal" selected>🟡 Normal (Taktiksel kaçınma, dengeli hedef)</option>
+            <option value="hard">🔴 Zor (Usta Aimbot, mermi tahminleme & depar)</option>
+          </select>
+        </div>
+
+        <div class="input-group">
           <label class="input-label" for="customMapSelect">HARİTA SEÇİMİ</label>
           <select id="customMapSelect" class="cyber-input">
             <option value="classic">Savaş Meydanı (Classic)</option>
@@ -317,34 +349,111 @@
     </div>
   </div>
 
+  <!-- Modal: Tank Customization / Garage -->
+  <div id="garageModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 650px;">
+      <div class="modal-header">
+        <h2 class="modal-title">🎨 TANK GARAJI & KİŞİSELLEŞTİRME</h2>
+        <button id="btnCloseGarageModal" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Live Tank Preview Canvas -->
+        <div style="text-align: center; margin-bottom: 20px;">
+          <div style="background: radial-gradient(circle, rgba(0,242,254,0.12) 0%, rgba(5,8,14,0.8) 70%); border: 1px solid rgba(0,242,254,0.3); border-radius: 12px; display: inline-block; padding: 16px 36px; box-shadow: inset 0 0 20px rgba(0,242,254,0.15);">
+            <canvas id="garagePreviewCanvas" width="160" height="160" style="display: block; margin: 0 auto;"></canvas>
+            <div id="previewClassName" style="font-weight: 800; font-size: 15px; color: var(--accent-cyan); margin-top: 8px;">DENGELİ SAVAŞÇI</div>
+          </div>
+        </div>
+
+        <!-- 1. Sınıf Seçimi -->
+        <div class="garage-section" style="margin-bottom: 18px;">
+          <label class="input-label" style="margin-bottom: 8px; display: block;">TANK SINIFI</label>
+          <div class="garage-class-grid">
+            <button type="button" class="garage-class-card" data-class="scout">
+              <div class="class-title">⚡ İZCİ (SCOUT)</div>
+              <div class="class-desc">Yüksek Hız (+20%), Hızlı Seri Depar, Düşük Can (85 HP)</div>
+            </button>
+            <button type="button" class="garage-class-card active" data-class="balanced">
+              <div class="class-title">🛡️ DENGELİ</div>
+              <div class="class-desc">Standart Hız, Standart Zırh, Kusursuz Denge (100 HP)</div>
+            </button>
+            <button type="button" class="garage-class-card" data-class="titan">
+              <div class="class-title">🦾 TİTAN</div>
+              <div class="class-desc">Ağır Zırh (130 HP, 75 Kalkan), Yüksek Kitle, Düşük Hız (-15%)</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Renk Seçimi -->
+        <div class="garage-section" style="margin-bottom: 18px;">
+          <label class="input-label" style="margin-bottom: 8px; display: block;">GÖVDE RENGİ</label>
+          <div class="color-palette-grid">
+            <button type="button" class="swatch-btn active" data-color="#00e5ff" style="background: #00e5ff;" title="Siber Camgöbeği"></button>
+            <button type="button" class="swatch-btn" data-color="#00ff88" style="background: #00ff88;" title="Neon Yeşil"></button>
+            <button type="button" class="swatch-btn" data-color="#ff3366" style="background: #ff3366;" title="Ateş Kırmızısı"></button>
+            <button type="button" class="swatch-btn" data-color="#ffd700" style="background: #ffd700;" title="Kraliyet Altını"></button>
+            <button type="button" class="swatch-btn" data-color="#a855f7" style="background: #a855f7;" title="Hiper Mor"></button>
+            <button type="button" class="swatch-btn" data-color="#ff793f" style="background: #ff793f;" title="Magma Turuncusu"></button>
+            <button type="button" class="swatch-btn" data-color="#4caf50" style="background: #4caf50;" title="Askeri Kamuflaj"></button>
+            <button type="button" class="swatch-btn" data-color="#ffffff" style="background: #ffffff;" title="Kutup Beyazı"></button>
+          </div>
+        </div>
+
+        <!-- 3. Kamuflaj Deseni -->
+        <div class="garage-section" style="margin-bottom: 22px;">
+          <label class="input-label" style="margin-bottom: 8px; display: block;">KAMUFLAJ DESENİ</label>
+          <div class="garage-camo-grid">
+            <button type="button" class="camo-card-btn active" data-camo="none">Standart (Düz)</button>
+            <button type="button" class="camo-card-btn" data-camo="stripes">Yarış Çizgisi</button>
+            <button type="button" class="camo-card-btn" data-camo="carbon">Karbon Fiber</button>
+            <button type="button" class="camo-card-btn" data-camo="digital">Dijital Kamuflaj</button>
+            <button type="button" class="camo-card-btn" data-camo="neon">Neon Işıma</button>
+          </div>
+        </div>
+
+        <button id="btnSaveGarage" class="cyber-btn btn-primary" style="width: 100%;">
+          💾 Değişiklikleri Kaydet & Kuşan
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: Guide / How to Play -->
   <div id="guideModal" class="modal-overlay">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width: 680px;">
       <div class="modal-header">
-        <h2 class="modal-title">📖 NASIL OYNANIR?</h2>
+        <h2 class="modal-title">📖 NASIL OYNANIR & KONTROLLER</h2>
         <button id="btnCloseGuide" class="close-btn">&times;</button>
       </div>
-      <div class="modal-body" style="font-size: 15px; line-height: 1.6; color: #cfd8dc;">
-        <h3 style="color: var(--accent-cyan); margin-bottom: 8px;">🎮 Kontroller</h3>
+      <div class="modal-body" style="font-size: 14px; line-height: 1.6; color: #cfd8dc;">
+        <h3 style="color: var(--accent-cyan); margin-bottom: 8px;">🎮 Kontroller & Yetenekler</h3>
         <ul style="margin-left: 20px; margin-bottom: 16px;">
-          <li><b>W, A, S, D</b> veya <b>Yön Tuşları:</b> Tank Gövdesini Sür</li>
-          <li><b>Fare Hareketi:</b> Namluyu Bağımsız Hedefe Çevir</li>
-          <li><b>Sol Tık / Boşluk:</b> Topu Ateşle</li>
-          <li><b>Shift / Sağ Tık:</b> Nitro Ani Hızlanma (Dash)</li>
-          <li><b>TAB:</b> Maç Canlı Skor Tablosu</li>
+          <li><b>W, A, S, D / Yön Tuşları:</b> Tank Gövdesini Sür</li>
+          <li><b>Fare Hareketi:</b> Namluyu Bağımsız Döndür & Nişan Al</li>
+          <li><b>Sol Tık VEYA Boşluk (Space):</b> Namludan Ateş Et</li>
+          <li><b>Shift VEYA Sağ Tık:</b> İleri Doğru Nitro Depar (Ani fırlama)</li>
+          <li><b>E Tuşu:</b> 2.5 Saniye Mermi Geçirmez Enerji Kalkanı Aç (10s Cooldown)</li>
+          <li><b>TAB:</b> Canlı Skor Tablosu</li>
+          <li><b>ESC:</b> Menü / Oyundan Ayrıl</li>
           <li><b>ENTER:</b> Taktiksel Sohbet</li>
         </ul>
 
-        <h3 style="color: var(--accent-gold); margin-bottom: 8px;">🔥 Taktikler & Güçlendirmeler</h3>
+        <h3 style="color: var(--accent-gold); margin-bottom: 8px;">⚔️ Oyun Modları & Bot Zorluğu</h3>
         <ul style="margin-left: 20px; margin-bottom: 16px;">
-          <li><b>Mermi Sektirme:</b> Çelik duvarlara çarpan mermiler açılı olarak seker! Köşe arkasındaki düşmanları sürpriz açılardan vurun.</li>
-          <li><b>Kırılabilir Tuğlalar:</b> Tuğla duvarları top atışlarıyla patlatıp gizli geçitler açabilir ve içinden çıkan güçlendirmeleri toplayabilirsiniz.</li>
-          <li><b>Çalılar:</b> Çalıların içine girip kamufle olun ve pusu kurun!</li>
-          <li><b>Güçlendirmeler:</b> Üçlü Atış, Ağır Sniper Raygun, Güdümlü Roket, Enerji Kalkanı ve Tamir Kitlerini toplayarak üstünlük kurun.</li>
+          <li><b>Herkes Tek (FFA):</b> Arenada tek başına hayatta kal, en çok puanı topla!</li>
+          <li><b>Takımlı Ölüm Maçı (TDM):</b> Kırmızı vs Mavi! Takım arkadaşlarına ateş edemezsin. Beraber taktik yapıp rakip takımı ezin!</li>
+          <li><b>Bot Zorlukları:</b> Özel odada Kolay, Normal ve Usta Aimbot (Zor) botlar seçebilirsiniz.</li>
         </ul>
 
-        <h3 style="color: var(--accent-orange); margin-bottom: 8px;">🏅 Sıralama & Lig Sistemi</h3>
-        <p>Her öldürme ve maç zaferi ELO puanınızı yükseltir. Bronz birlikten başlayıp <b>Apex Tanker</b> tahtına ulaşın!</p>
+        <h3 style="color: var(--accent-orange); margin-bottom: 8px;">💣 Gelişmiş Cephanelik</h3>
+        <ul style="margin-left: 20px; margin-bottom: 16px;">
+          <li><b>Plazma Topu:</b> Ağır elektrik orbu fırlatır, patladığında geniş alan hasarı verir!</li>
+          <li><b>Girdap Lazeri:</b> Duvarlardan tam 4 kez seken yüksek hızlı enerji ışını!</li>
+          <li><b>Alev Püskürtücü:</b> Yakın mesafede ölümcül koni alev dalgası yayar!</li>
+          <li><b>Küme Bombası:</b> Patladığında çevreye 4 adet mini patlayıcı şarapnel saçar!</li>
+          <li><b>Güdümlü Roket:</b> Hedefe kilitlenen yüksek tahrip güçlü güdümlü mermi!</li>
+          <li><b>Sniper / Raygun:</b> Duvarları delip geçen süper sonik keskin nişancı atışı!</li>
+        </ul>
       </div>
     </div>
   </div>

@@ -807,3 +807,116 @@ body, html {
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 
+/* Tank Customization / Garage Styles */
+.garage-class-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.garage-class-card {
+  background: rgba(10, 15, 25, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 12px 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  color: #fff;
+}
+
+.garage-class-card:hover {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 242, 254, 0.08);
+}
+
+.garage-class-card.active {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 242, 254, 0.18);
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+}
+
+.garage-class-card .class-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--accent-cyan);
+  margin-bottom: 4px;
+}
+
+.garage-class-card.active .class-title {
+  color: #fff;
+  text-shadow: 0 0 8px var(--accent-cyan);
+}
+
+.garage-class-card .class-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.color-palette-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.swatch-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.swatch-btn:hover {
+  transform: scale(1.15);
+}
+
+.swatch-btn.active {
+  border-color: #fff;
+  transform: scale(1.18);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.8);
+}
+
+.garage-camo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.camo-card-btn {
+  background: rgba(10, 15, 25, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: var(--text-muted);
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.camo-card-btn:hover {
+  border-color: var(--accent-gold);
+  color: #fff;
+}
+
+.camo-card-btn.active {
+  background: rgba(255, 190, 11, 0.16);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  box-shadow: 0 0 12px rgba(255, 190, 11, 0.3);
+}
+
+@media (max-width: 600px) {
+  .garage-class-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+

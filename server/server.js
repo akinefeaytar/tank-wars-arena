@@ -61,25 +61,27 @@ io.on('connection', (socket) => {
   socket.emit('leaderboard_update', LeaderboardStore.getLeaderboard(20));
 
   // Player joins game (either quick play or specific room)
-  socket.on('join_game', ({ name, roomId }) => {
+  socket.on('join_game', ({ name, roomId, customization }) => {
     const cleanName = (name || 'Tankçı').trim().substring(0, 16);
-    gameManager.joinPlayer(socket, roomId, cleanName);
+    gameManager.joinPlayer(socket, roomId, cleanName, customization || {});
   });
 
   // Host creates custom room for friends
   socket.on('create_room', (roomOptions, callback) => {
-    const { creatorName, name, botCount, mapId, killLimit, duration } = roomOptions || {};
+    const { creatorName, name, botCount, botDifficulty, mode, mapId, killLimit, duration, customization } = roomOptions || {};
     const cleanCreator = (creatorName || 'Komutan').trim().substring(0, 16);
     
     const { roomId, roomCode } = gameManager.createCustomRoom(cleanCreator, {
       name,
+      mode: mode || 'ffa',
+      botDifficulty: botDifficulty || 'normal',
       botCount: botCount !== undefined ? parseInt(botCount, 10) : 4,
       mapId: mapId || 'classic',
       killLimit: killLimit ? parseInt(killLimit, 10) : 25,
       duration: duration ? parseInt(duration, 10) : 300
     });
 
-    gameManager.joinPlayer(socket, roomId, cleanCreator);
+    gameManager.joinPlayer(socket, roomId, cleanCreator, customization || {});
 
     if (typeof callback === 'function') {
       callback({ success: true, roomId, roomCode });

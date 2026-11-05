@@ -16,17 +16,21 @@ module.exports = {
   TANK_TURRET_TURN_SPEED: 0.12,
   TANK_MAX_HEALTH: 100,
   TANK_MAX_SHIELD: 50,
-  TANK_DASH_SPEED: 9.5,
-  TANK_DASH_DURATION: 180, // ms
-  TANK_DASH_COOLDOWN: 3500, // ms
+  TANK_DASH_SPEED: 10.5,
+  TANK_DASH_DURATION: 220, // ms
+  TANK_DASH_COOLDOWN: 3000, // ms
+
+  // 'E' Key Energy Barrier (Invulnerability Shield)
+  TANK_BARRIER_DURATION: 2500, // 2.5 seconds of full immunity
+  TANK_BARRIER_COOLDOWN: 10000, // 10 seconds cooldown
   
   // Weapons & Bullets
   BULLET_SPEED: 11,
   BULLET_RADIUS: 5,
   BULLET_DAMAGE: 34,
   BULLET_LIFETIME: 3200, // ms
-  BULLET_MAX_BOUNCES: 1, // Ricochet off steel walls
-  RELOAD_TIME: 450, // ms between regular shots
+  BULLET_MAX_BOUNCES: 1,
+  RELOAD_TIME: 450,
   
   // Weapon Types
   WEAPONS: {
@@ -49,7 +53,7 @@ module.exports = {
       reloadTime: 550,
       spread: 0.22,
       shots: 3,
-      duration: 12000,
+      duration: 14000,
       color: '#ff3366'
     },
     SNIPER: {
@@ -76,28 +80,86 @@ module.exports = {
       duration: 15000,
       color: '#ff6600'
     },
-    SHOTGUN: {
-      id: 'shotgun',
-      name: 'Yivli Pompalı',
-      damage: 18,
-      speed: 13,
-      radius: 4,
-      shots: 5,
-      spread: 0.45,
-      reloadTime: 650,
+    PLASMA: {
+      id: 'plasma',
+      name: 'Plazma Topu',
+      damage: 75,
+      speed: 8.5,
+      radius: 12,
+      explosionRadius: 75,
+      reloadTime: 950,
+      duration: 16000,
+      color: '#00ffcc'
+    },
+    BOUNCING_LASER: {
+      id: 'bouncing_laser',
+      name: 'Girdap Lazeri',
+      damage: 28,
+      speed: 16,
+      radius: 4.5,
+      bounces: 4,
+      reloadTime: 380,
+      duration: 15000,
+      color: '#ff00ff'
+    },
+    FLAMETHROWER: {
+      id: 'flamethrower',
+      name: 'Termal Alev Topu',
+      damage: 15,
+      speed: 10,
+      radius: 7,
+      shots: 3,
+      spread: 0.35,
+      reloadTime: 180,
       duration: 12000,
-      color: '#e056fd'
+      color: '#ff4500'
+    },
+    CLUSTER: {
+      id: 'cluster',
+      name: 'Küme Bombası',
+      damage: 48,
+      speed: 9.5,
+      radius: 8,
+      isCluster: true,
+      explosionRadius: 60,
+      reloadTime: 900,
+      duration: 15000,
+      color: '#a8ff00'
     }
   },
 
   // Powerup definitions
   POWERUP_TYPES: {
     HEALTH: { id: 'health', name: 'Tamir Kiti', color: '#2ecc71', icon: '❤️' },
-    SHIELD: { id: 'shield', name: 'Enerji Kalkanı', color: '#3498db', icon: '🛡️' },
+    SHIELD: { id: 'shield', name: 'Zırh Güçlendirme', color: '#3498db', icon: '🛡️' },
     TRIPLE: { id: 'triple', name: 'Üçlü Atış', color: '#e74c3c', icon: '🔥' },
     SNIPER: { id: 'sniper', name: 'Ağır Sniper', color: '#00d2d3', icon: '⚡' },
     ROCKET: { id: 'rocket', name: 'Ağır Roket', color: '#f39c12', icon: '🚀' },
-    SPEED: { id: 'speed', name: 'Nitro Hız', color: '#f1c40f', icon: '💨' }
+    PLASMA: { id: 'plasma', name: 'Plazma Topu', color: '#00ffcc', icon: '🌌' },
+    BOUNCING_LASER: { id: 'bouncing_laser', name: 'Girdap Lazeri', color: '#ff00ff', icon: '🌀' },
+    FLAMETHROWER: { id: 'flamethrower', name: 'Alev Topu', color: '#ff4500', icon: '🌋' },
+    CLUSTER: { id: 'cluster', name: 'Küme Bombası', color: '#a8ff00', icon: '💣' },
+    SPEED: { id: 'speed', name: 'Süper Nitro', color: '#f1c40f', icon: '💨' }
+  },
+
+  // Tank Classes / Garaj
+  TANK_CLASSES: {
+    BALANCED: { id: 'balanced', name: 'Dengeli Taktik', health: 100, speedMul: 1.0, desc: 'Klasik hız ve dayanıklılık' },
+    SCOUT: { id: 'scout', name: 'Hafif Keşif (Hızlı)', health: 80, speedMul: 1.25, desc: 'Yüksek hareket ve depar hızı' },
+    TITAN: { id: 'titan', name: 'Ağır Zırhlı (Titan)', health: 140, speedMul: 0.85, desc: 'Ekstra gövde direnci ve kalkan' }
+  },
+
+  // Bot Difficulties
+  BOT_DIFFICULTIES: {
+    EASY: { id: 'easy', name: 'Kolay', aimInaccuracy: 0.35, dodgeChance: 0.3, leadAccuracy: 0.4 },
+    NORMAL: { id: 'normal', name: 'Normal', aimInaccuracy: 0.16, dodgeChance: 0.65, leadAccuracy: 0.8 },
+    HARD: { id: 'hard', name: 'Zor (Veteran)', aimInaccuracy: 0.04, dodgeChance: 0.95, leadAccuracy: 1.0 }
+  },
+
+  // Game Modes
+  GAME_MODES: {
+    FFA: 'ffa', // Free For All (Herkes Tek)
+    TDM: 'tdm'  // Team Deathmatch (Kırmızı vs Mavi)
   },
 
   // Ranks
@@ -123,4 +185,3 @@ module.exports = {
   DEFAULT_KILL_LIMIT: 25,
   RESPAWN_DELAY: 3000 // ms
 };
-

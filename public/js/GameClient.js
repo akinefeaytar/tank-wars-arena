@@ -164,9 +164,15 @@ class GameClient {
           break;
         case 'ShiftLeft':
         case 'ShiftRight':
-        case 'Space':
           this.inputState.dash = true;
           window.audioManager.playDash();
+          break;
+        case 'Space':
+          this.inputState.shoot = true;
+          break;
+        case 'KeyE':
+          this.inputState.barrier = true;
+          window.audioManager.playBarrier();
           break;
         case 'Tab':
           e.preventDefault();
@@ -195,9 +201,8 @@ class GameClient {
         case 'ArrowRight':
           this.inputState.right = false;
           break;
-        case 'Tab':
-          e.preventDefault();
-          window.UI.toggleScoreboard(false);
+        case 'Space':
+          this.inputState.shoot = false;
           break;
       }
     });
@@ -316,9 +321,11 @@ class GameClient {
           },
           aimAngle: this.inputState.aimAngle,
           shoot: this.inputState.shoot,
-          dash: this.inputState.dash
+          dash: this.inputState.dash,
+          barrier: this.inputState.barrier
         });
         this.inputState.dash = false;
+        this.inputState.barrier = false;
         this.lastInputSendTime = currentTime;
       }
 
@@ -397,8 +404,8 @@ class GameClient {
     return a + diff * t;
   }
 
-  joinGame(name, roomId = null) {
-    this.socket.emit('join_game', { name, roomId });
+  joinGame(name, roomId = null, customization = {}) {
+    this.socket.emit('join_game', { name, roomId, customization });
   }
 
   leaveGame() {

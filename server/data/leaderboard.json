@@ -1,1 +1,15 @@
-{}
+{
+  "akinbabapro": {
+    "name": "akinbabapro",
+    "elo": 1000,
+    "kills": 0,
+    "deaths": 0,
+    "wins": 0,
+    "matches": 0,
+    "highestStreak": 0,
+    "badge": "🥈",
+    "tier": "Gümüş",
+    "color": "#c0c0c0",
+    "lastPlayed": 1793877507768
+  }
+}

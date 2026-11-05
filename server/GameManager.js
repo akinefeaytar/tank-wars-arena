@@ -34,6 +34,8 @@ class GameManager {
     const room = this.getOrCreateRoom(roomId, {
       name: options.name || `${creatorName}'in Özel Odası`,
       isPrivate: true,
+      mode: options.mode || 'ffa',
+      botDifficulty: options.botDifficulty || 'normal',
       botCount: options.botCount !== undefined ? options.botCount : 4,
       mapId: options.mapId || 'classic',
       killLimit: options.killLimit || 25,
@@ -43,14 +45,14 @@ class GameManager {
     return { roomId, roomCode: customCode, room };
   }
 
-  joinPlayer(socket, roomId, playerName) {
+  joinPlayer(socket, roomId, playerName, customization = {}) {
     // Leave previous room if any
     this.leavePlayer(socket.id);
 
     const targetRoomId = roomId || 'public_arena';
     const room = this.getOrCreateRoom(targetRoomId);
 
-    const tank = room.addPlayer(socket.id, playerName);
+    const tank = room.addPlayer(socket.id, playerName, customization);
     this.playerRoomMap.set(socket.id, targetRoomId);
     socket.join(targetRoomId);
 
@@ -60,6 +62,8 @@ class GameManager {
     socket.emit('joined_room', {
       roomId: targetRoomId,
       roomName: room.name,
+      mode: room.mode,
+      teamScores: room.teamScores,
       playerId: socket.id,
       tank,
       map: room.map

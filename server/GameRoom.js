@@ -13,6 +13,9 @@ const {
   TANK_DASH_SPEED, 
   TANK_DASH_DURATION, 
   TANK_DASH_COOLDOWN, 
+  TANK_BARRIER_DURATION,
+  TANK_BARRIER_COOLDOWN,
+  TANK_CLASSES,
   BULLET_SPEED, 
   BULLET_RADIUS, 
   BULLET_DAMAGE, 
@@ -35,12 +38,15 @@ class GameRoom {
     this.roomId = roomId;
     this.name = options.name || `Oda #${roomId.substring(0, 5)}`;
     this.isPrivate = !!options.isPrivate;
+    this.mode = options.mode || 'ffa'; // 'ffa' or 'tdm'
+    this.botDifficulty = options.botDifficulty || 'normal'; // 'easy', 'normal', 'hard'
     this.mapId = options.mapId || 'classic';
     this.targetBotCount = options.botCount !== undefined ? options.botCount : 4;
     this.maxPlayers = options.maxPlayers || 10;
     this.matchDuration = options.duration || DEFAULT_MATCH_DURATION;
     this.killLimit = options.killLimit || DEFAULT_KILL_LIMIT;
 
+    this.teamScores = { red: 0, blue: 0 };
     this.map = MapData.generateMap(this.mapId);
     this.players = new Map(); // socketId -> Tank
     this.bots = new Map();    // botId -> { tank, ai }
@@ -48,17 +54,17 @@ class GameRoom {
     this.powerups = [];
     this.nextBulletId = 1;
     this.nextPowerupId = 1;
-    this.matchState = 'waiting'; // 'waiting', 'playing', 'ended'
+    this.matchState = 'waiting';
     this.timeRemaining = this.matchDuration;
     this.lastTickTime = Date.now();
     this.lastPowerupSpawn = Date.now();
     this.killFeed = [];
     this.destroyedBricks = [];
 
-    // Colors for tanks
+    // Colors for FFA tanks
     this.playerColors = [
-      '#00e5ff', '#ff0055', '#ffe600', '#00ff88', '#bd00ff', 
-      '#ff7700', '#00ffff', '#e056fd', '#ff5252', '#2ed573'
+      '#00e5ff', '#ffe600', '#00ff88', '#bd00ff', 
+      '#ff7700', '#e056fd', '#00ffff', '#2ed573'
     ];
     this.colorIndex = 0;
 
@@ -88,12 +94,19 @@ class GameRoom {
         const botId = `bot_${Date.now()}_${i}`;
         const personalities = ['hunter', 'sniper', 'tactician', 'balanced'];
         const personality = personalities[i % personalities.length];
-        const ai = new BotAI(botId, i, personality);
-        const tank = this.createTank(botId, ai.name, true);
+        const ai = new BotAI(botId, i, personality, this.botDifficulty);
+
+        // Assign team for TDM
+        let assignedTeam = null;
+        if (this.mode === 'tdm') {
+          const counts = this.getTeamCounts();
+          assignedTeam = counts.red <= counts.blue ? 'red' : 'blue';
+        }
+
+        const tank = this.createTank(botId, ai.name, true, { team: assignedTeam });
         this.bots.set(botId, { tank, ai });
       }
     } else if (currentBots > needed) {
-      // Remove excess bots
       const toRemove = currentBots - needed;
       let count = 0;
       for (const [id] of this.bots) {
@@ -104,11 +117,32 @@ class GameRoom {
     }
   }
 
-  createTank(id, name, isBot = false) {
-    const spawn = this.getRandomSpawnPoint();
-    const color = isBot 
-      ? '#ff3838' 
-      : this.playerColors[(this.colorIndex++) % this.playerColors.length];
+  getTeamCounts() {
+    let red = 0;
+    let blue = 0;
+    for (const t of this.getAllTanks()) {
+      if (t.team === 'red') red++;
+      else if (t.team === 'blue') blue++;
+    }
+    return { red, blue };
+  }
+
+  createTank(id, name, isBot = false, customization = {}) {
+    const team = customization.team || (this.mode === 'tdm' ? (this.getTeamCounts().red <= this.getTeamCounts().blue ? 'red' : 'blue') : null);
+    const spawn = this.getRandomSpawnPoint(team);
+
+    // Color based on team or custom choice
+    let color = customization.color;
+    if (this.mode === 'tdm') {
+      color = team === 'red' ? '#ff3838' : '#00b4d8';
+    } else if (!color) {
+      color = isBot ? '#ff5252' : this.playerColors[(this.colorIndex++) % this.playerColors.length];
+    }
+
+    // Class selection (Scout, Balanced, Titan)
+    const classKey = (customization.tankClass || 'balanced').toUpperCase();
+    const classDef = TANK_CLASSES[classKey] || TANK_CLASSES.BALANCED;
+    const camo = customization.camo || 'classic';
 
     const stats = !isBot ? LeaderboardStore.getOrCreatePlayer(name) : null;
 
@@ -116,6 +150,10 @@ class GameRoom {
       id,
       name,
       isBot,
+      team,
+      camo,
+      tankClass: classDef.id,
+      speedMul: classDef.speedMul || 1.0,
       x: spawn.x,
       y: spawn.y,
       vx: 0,
@@ -123,8 +161,8 @@ class GameRoom {
       angle: Math.random() * Math.PI * 2,
       turretAngle: 0,
       color,
-      health: TANK_MAX_HEALTH,
-      maxHealth: TANK_MAX_HEALTH,
+      health: classDef.health,
+      maxHealth: classDef.health,
       shield: 0,
       maxShield: TANK_MAX_SHIELD,
       weapon: { ...WEAPONS.STANDARD },
@@ -133,6 +171,9 @@ class GameRoom {
       isDashing: false,
       dashEndsAt: 0,
       dashCooldownEndsAt: 0,
+      isBarrierActive: false,
+      barrierEndsAt: 0,
+      barrierCooldownEndsAt: 0,
       lastShotTime: 0,
       kills: 0,
       deaths: 0,
@@ -140,16 +181,27 @@ class GameRoom {
       streak: 0,
       maxStreak: 0,
       elo: stats ? stats.elo : 1000,
-      badge: stats ? stats.badge : '🥉',
-      tier: stats ? stats.tier : 'Bronz',
-      rankColor: stats ? stats.color : '#cd7f32',
+      badge: stats ? stats.badge : '🥈',
+      tier: stats ? stats.tier : 'Gümüş',
+      rankColor: stats ? stats.color : '#c0c0c0',
       respawnAt: 0,
-      inputs: { up: false, down: false, left: false, right: false, aimAngle: 0, shoot: false, dash: false }
+      inputs: { up: false, down: false, left: false, right: false, aimAngle: 0, shoot: false, dash: false, barrier: false }
     };
   }
 
-  getRandomSpawnPoint() {
+  getRandomSpawnPoint(team = null) {
     if (this.map.spawns && this.map.spawns.length > 0) {
+      if (this.mode === 'tdm' && team) {
+        // Red team spawns on left half, Blue team spawns on right half
+        const midX = MAP_WIDTH / 2;
+        const filtered = this.map.spawns.filter(sp => team === 'red' ? sp.x < midX : sp.x >= midX);
+        const candidates = filtered.length > 0 ? filtered : this.map.spawns;
+        const sp = candidates[Math.floor(Math.random() * candidates.length)];
+        return { 
+          x: sp.x + TILE_SIZE / 2 + (Math.random() * 20 - 10), 
+          y: sp.y + TILE_SIZE / 2 + (Math.random() * 20 - 10) 
+        };
+      }
       const sp = this.map.spawns[Math.floor(Math.random() * this.map.spawns.length)];
       return { 
         x: sp.x + TILE_SIZE / 2 + (Math.random() * 20 - 10), 
@@ -159,10 +211,10 @@ class GameRoom {
     return { x: MAP_WIDTH / 2, y: MAP_HEIGHT / 2 };
   }
 
-  addPlayer(socketId, playerName) {
-    const tank = this.createTank(socketId, playerName, false);
+  addPlayer(socketId, playerName, customization = {}) {
+    const tank = this.createTank(socketId, playerName, false, customization);
     this.players.set(socketId, tank);
-    this.populateBots(); // Balance bot count
+    this.populateBots();
     return tank;
   }
 
@@ -179,6 +231,7 @@ class GameRoom {
     if (inputData.aimAngle !== undefined) tank.inputs.aimAngle = inputData.aimAngle;
     if (inputData.shoot !== undefined) tank.inputs.shoot = inputData.shoot;
     if (inputData.dash) tank.inputs.dash = true;
+    if (inputData.barrier) tank.inputs.barrier = true;
   }
 
   spawnInitialPowerups() {
@@ -213,12 +266,18 @@ class GameRoom {
     if (this.matchState === 'playing') {
       this.timeRemaining -= dt;
       if (this.timeRemaining <= 0) {
-        this.endMatch('Süre doldu!');
+        let winnerMsg = 'Süre doldu!';
+        if (this.mode === 'tdm') {
+          winnerMsg = this.teamScores.red > this.teamScores.blue 
+            ? 'Kırmızı Takım Zafer Kazandı!' 
+            : (this.teamScores.blue > this.teamScores.red ? 'Mavi Takım Zafer Kazandı!' : 'Berabere!');
+        }
+        this.endMatch(winnerMsg);
       }
     }
 
     // Periodic Powerup Spawner
-    if (now - this.lastPowerupSpawn > 14000 && this.powerups.length < 8) {
+    if (now - this.lastPowerupSpawn > 13000 && this.powerups.length < 9) {
       this.lastPowerupSpawn = now;
       if (this.map.powerupSpawns.length > 0) {
         const sp = this.map.powerupSpawns[Math.floor(Math.random() * this.map.powerupSpawns.length)];
@@ -236,6 +295,7 @@ class GameRoom {
       }
 
       const botDecision = ai.update(tank, {
+        mode: this.mode,
         tanks: this.getAllTanksMap(),
         bullets: this.bullets,
         powerups: this.powerups,
@@ -249,11 +309,12 @@ class GameRoom {
         right: botDecision.keys.right,
         aimAngle: botDecision.aimAngle,
         shoot: botDecision.shoot,
-        dash: botDecision.dash
+        dash: botDecision.dash,
+        barrier: botDecision.barrier
       };
     }
 
-    // 2. Update All Tanks Physics
+    // 2. Update Tanks Physics
     const allTanks = this.getAllTanks();
     for (const tank of allTanks) {
       if (tank.health <= 0) {
@@ -299,25 +360,41 @@ class GameRoom {
   }
 
   updateTankPhysics(tank, now, dt) {
-    // Check weapon expiry
     if (tank.weapon.id !== 'standard' && now >= tank.weaponExpiresAt) {
       tank.weapon = { ...WEAPONS.STANDARD };
     }
 
-    // Dash handling
+    // Shift Forward Depar / Dash
     if (tank.inputs.dash && now >= tank.dashCooldownEndsAt && !tank.isDashing) {
       tank.isDashing = true;
       tank.dashEndsAt = now + TANK_DASH_DURATION;
       tank.dashCooldownEndsAt = now + TANK_DASH_COOLDOWN;
       tank.inputs.dash = false;
+      
+      // Powerful forward surge in chassis direction
+      const surgeSpeed = 8.5;
+      tank.vx += Math.cos(tank.angle) * surgeSpeed;
+      tank.vy += Math.sin(tank.angle) * surgeSpeed;
     }
 
     if (tank.isDashing && now >= tank.dashEndsAt) {
       tank.isDashing = false;
     }
 
+    // 'E' Key Temporary Invulnerability Barrier
+    if (tank.inputs.barrier && now >= tank.barrierCooldownEndsAt && !tank.isBarrierActive) {
+      tank.isBarrierActive = true;
+      tank.barrierEndsAt = now + TANK_BARRIER_DURATION;
+      tank.barrierCooldownEndsAt = now + TANK_BARRIER_COOLDOWN;
+      tank.inputs.barrier = false;
+    }
+
+    if (tank.isBarrierActive && now >= tank.barrierEndsAt) {
+      tank.isBarrierActive = false;
+    }
+
     // Movement calculation
-    let moveSpeed = TANK_MAX_SPEED;
+    let moveSpeed = TANK_MAX_SPEED * (tank.speedMul || 1.0);
     if (now < tank.speedBoostExpiresAt) moveSpeed *= 1.45;
     if (tank.isDashing) moveSpeed = TANK_DASH_SPEED;
 
@@ -329,32 +406,26 @@ class GameRoom {
     if (tank.inputs.left) targetVx -= moveSpeed;
     if (tank.inputs.right) targetVx += moveSpeed;
 
-    // Normalize diagonal movement
     if (targetVx !== 0 && targetVy !== 0) {
       targetVx *= 0.7071;
       targetVy *= 0.7071;
     }
 
-    // Smooth acceleration & inertia
     tank.vx += (targetVx - tank.vx) * TANK_ACCELERATION;
     tank.vy += (targetVy - tank.vy) * TANK_ACCELERATION;
 
-    // Rotate chassis smoothly towards movement direction if moving
     if (Math.hypot(tank.vx, tank.vy) > 0.4) {
       const moveAngle = Math.atan2(tank.vy, tank.vx);
       tank.angle = this.lerpAngle(tank.angle, moveAngle, 0.22);
     }
 
-    // Aim turret smoothly towards target
     if (tank.inputs.aimAngle !== undefined) {
       tank.turretAngle = this.lerpAngle(tank.turretAngle, tank.inputs.aimAngle, 0.35);
     }
 
-    // New proposed position
     let newX = tank.x + tank.vx;
     let newY = tank.y + tank.vy;
 
-    // Check Wall Collisions (X-axis, then Y-axis for smooth sliding)
     if (!this.checkWallCollision(newX, tank.y, TANK_RADIUS)) {
       tank.x = newX;
     } else {
@@ -367,7 +438,6 @@ class GameRoom {
       tank.vy = 0;
     }
 
-    // Keep inside map bounds
     tank.x = Math.max(TANK_RADIUS + 10, Math.min(MAP_WIDTH - TANK_RADIUS - 10, tank.x));
     tank.y = Math.max(TANK_RADIUS + 10, Math.min(MAP_HEIGHT - TANK_RADIUS - 10, tank.y));
 
@@ -384,32 +454,30 @@ class GameRoom {
     const spawnX = tank.x + Math.cos(tank.turretAngle) * barrelLength;
     const spawnY = tank.y + Math.sin(tank.turretAngle) * barrelLength;
 
-    // Recoil push
-    const recoilForce = w.id === 'sniper' ? 3.5 : (w.id === 'rocket' ? 2.5 : 1.2);
+    const recoilForce = w.id === 'sniper' ? 3.5 : (w.id === 'plasma' ? 3.0 : 1.2);
     tank.vx -= Math.cos(tank.turretAngle) * recoilForce;
     tank.vy -= Math.sin(tank.turretAngle) * recoilForce;
 
     if (w.shots && w.shots > 1) {
-      // Multi-shot (Triple shot, Shotgun)
       const count = w.shots;
       const spread = w.spread || 0.25;
       const startAngle = tank.turretAngle - (spread * (count - 1)) / 2;
 
       for (let i = 0; i < count; i++) {
         const shotAngle = startAngle + i * spread;
-        this.createBullet(tank, spawnX, spawnY, shotAngle, w);
+        this.createBullet(tank, spawnX, spawnY, shotAngle, w, tank.team);
       }
     } else {
-      // Single shot
-      this.createBullet(tank, spawnX, spawnY, tank.turretAngle, w);
+      this.createBullet(tank, spawnX, spawnY, tank.turretAngle, w, tank.team);
     }
   }
 
-  createBullet(tank, x, y, angle, weapon) {
+  createBullet(tank, x, y, angle, weapon, team = null) {
     const bullet = {
       id: `b_${this.nextBulletId++}`,
       ownerId: tank.id,
       ownerName: tank.name,
+      ownerTeam: team,
       x,
       y,
       vx: Math.cos(angle) * weapon.speed,
@@ -421,6 +489,7 @@ class GameRoom {
       color: weapon.color,
       weaponId: weapon.id,
       explosionRadius: weapon.explosionRadius || 0,
+      isCluster: !!weapon.isCluster,
       pierceLeft: weapon.pierce || 0,
       createdAt: Date.now()
     };
@@ -436,18 +505,16 @@ class GameRoom {
       let nextX = b.x + b.vx;
       let nextY = b.y + b.vy;
 
-      // 1. Check Tile Wall Collision
+      // 1. Tile Wall Collision
       const tileCol = this.checkBulletTileCollision(nextX, nextY, b);
       if (tileCol.hit) {
         if (tileCol.destroyedBrick) {
-          // Brick destroyed, bullet explodes
-          this.onExplosion(b.x, b.y, b.explosionRadius || 20, b.damage, b.ownerId);
+          this.onExplosion(b.x, b.y, b.explosionRadius || 20, b.damage, b.ownerId, b.ownerTeam);
           continue;
         }
 
         if (b.bouncesLeft > 0 && tileCol.normal) {
           b.bouncesLeft--;
-          // Reflect velocity
           if (tileCol.normal.x !== 0) b.vx = -b.vx;
           if (tileCol.normal.y !== 0) b.vy = -b.vy;
           b.angle = Math.atan2(b.vy, b.vx);
@@ -456,16 +523,18 @@ class GameRoom {
           survivingBullets.push(b);
           continue;
         } else {
-          // Explode on steel wall
-          this.onExplosion(b.x, b.y, b.explosionRadius || 15, b.damage, b.ownerId);
+          this.onExplosion(b.x, b.y, b.explosionRadius || 15, b.damage, b.ownerId, b.ownerTeam);
           continue;
         }
       }
 
-      // 2. Check Tank Hit
+      // 2. Check Tank Hit (Respect Team Mode Friendly Fire)
       let hitTank = null;
       for (const tank of this.getAllTanks()) {
         if (tank.health <= 0 || tank.id === b.ownerId) continue;
+        // Friendly fire disabled in TDM
+        if (this.mode === 'tdm' && b.ownerTeam && tank.team === b.ownerTeam) continue;
+
         const dist = Math.hypot(tank.x - nextX, tank.y - nextY);
         if (dist < TANK_RADIUS + b.radius) {
           hitTank = tank;
@@ -477,7 +546,32 @@ class GameRoom {
         this.damageTank(hitTank, b.damage, b.ownerId, b.ownerName, b.weaponId);
         
         if (b.explosionRadius > 0) {
-          this.onExplosion(nextX, nextY, b.explosionRadius, b.damage * 0.6, b.ownerId);
+          this.onExplosion(nextX, nextY, b.explosionRadius, b.damage * 0.6, b.ownerId, b.ownerTeam);
+        }
+
+        // Cluster bomb splits into 4 submunitions
+        if (b.isCluster) {
+          for (let i = 0; i < 4; i++) {
+            const clusterAngle = (i * Math.PI) / 2 + (Math.random() * 0.3 - 0.15);
+            this.bullets.push({
+              id: `b_${this.nextBulletId++}`,
+              ownerId: b.ownerId,
+              ownerName: b.ownerName,
+              ownerTeam: b.ownerTeam,
+              x: nextX,
+              y: nextY,
+              vx: Math.cos(clusterAngle) * 7.5,
+              vy: Math.sin(clusterAngle) * 7.5,
+              angle: clusterAngle,
+              damage: 22,
+              radius: 4,
+              bouncesLeft: 0,
+              color: '#a8ff00',
+              weaponId: 'cluster_shard',
+              explosionRadius: 35,
+              createdAt: now
+            });
+          }
         }
 
         if (b.pierceLeft > 0) {
@@ -487,7 +581,7 @@ class GameRoom {
           survivingBullets.push(b);
           continue;
         }
-        continue; // Bullet consumed
+        continue;
       }
 
       b.x = nextX;
@@ -501,8 +595,12 @@ class GameRoom {
   damageTank(tank, damage, attackerId, attackerName, weaponId) {
     if (tank.health <= 0) return;
 
+    // 'E' Key Energy Barrier full invulnerability
+    if (tank.isBarrierActive) {
+      return; // 100% deflection, zero damage!
+    }
+
     let remainingDamage = damage;
-    // Shield absorbs first
     if (tank.shield > 0) {
       if (tank.shield >= remainingDamage) {
         tank.shield -= remainingDamage;
@@ -525,7 +623,7 @@ class GameRoom {
     victim.streak = 0;
     victim.respawnAt = Date.now() + RESPAWN_DELAY;
 
-    // Immediately record victim death in career stats
+    // Record victim death in persistent career stats
     if (!victim.isBot) {
       const updatedVictim = LeaderboardStore.recordDeath(victim.name);
       victim.elo = updatedVictim.elo;
@@ -541,7 +639,12 @@ class GameRoom {
       killer.streak += 1;
       if (killer.streak > killer.maxStreak) killer.maxStreak = killer.streak;
 
-      // Immediately record killer kill & ELO gain in career stats
+      // Update team score in TDM
+      if (this.mode === 'tdm' && killer.team) {
+        this.teamScores[killer.team] = (this.teamScores[killer.team] || 0) + 1;
+      }
+
+      // Record killer kill in persistent career stats
       if (!killer.isBot) {
         const updatedKiller = LeaderboardStore.recordKill(killer.name, killer.streak);
         killer.elo = updatedKiller.elo;
@@ -550,34 +653,37 @@ class GameRoom {
         killer.rankColor = updatedKiller.color;
       }
 
-      // Broadcast kill feed item
       this.addKillFeed(killer.name, victim.name, weaponId, killer.streak);
 
-      // Check match win condition
-      if (killer.kills >= this.killLimit) {
+      // Check win condition
+      if (this.mode === 'tdm') {
+        if (this.teamScores.red >= this.killLimit || this.teamScores.blue >= this.killLimit) {
+          const winnerTeam = this.teamScores.red >= this.killLimit ? 'Kırmızı Takım' : 'Mavi Takım';
+          this.endMatch(`${winnerTeam} ${this.killLimit} leşe ulaşarak zafer kazandı!`);
+        }
+      } else if (killer.kills >= this.killLimit) {
         this.endMatch(`${killer.name} ${this.killLimit} leşe ulaşarak zafer kazandı!`);
       }
     } else {
-      // Suicide / environment
       this.addKillFeed('Çevre', victim.name, 'suicide', 0);
     }
 
-    // Chance to drop a powerup at death location
     if (Math.random() < 0.6) {
       this.spawnPowerup(victim.x, victim.y);
     }
   }
 
   respawnTank(tank) {
-    const sp = this.getRandomSpawnPoint();
+    const sp = this.getRandomSpawnPoint(tank.team);
     tank.x = sp.x;
     tank.y = sp.y;
     tank.vx = 0;
     tank.vy = 0;
-    tank.health = TANK_MAX_HEALTH;
-    tank.shield = 25; // Quick shield on respawn for protection
+    tank.health = tank.maxHealth;
+    tank.shield = 25;
     tank.weapon = { ...WEAPONS.STANDARD };
     tank.isDashing = false;
+    tank.isBarrierActive = false;
     tank.respawnAt = 0;
   }
 
@@ -629,13 +735,30 @@ class GameRoom {
         tank.weapon = { ...WEAPONS.ROCKET };
         tank.weaponExpiresAt = now + WEAPONS.ROCKET.duration;
         break;
+      case 'plasma':
+        tank.weapon = { ...WEAPONS.PLASMA };
+        tank.weaponExpiresAt = now + WEAPONS.PLASMA.duration;
+        break;
+      case 'bouncing_laser':
+        tank.weapon = { ...WEAPONS.BOUNCING_LASER };
+        tank.weaponExpiresAt = now + WEAPONS.BOUNCING_LASER.duration;
+        break;
+      case 'flamethrower':
+        tank.weapon = { ...WEAPONS.FLAMETHROWER };
+        tank.weaponExpiresAt = now + WEAPONS.FLAMETHROWER.duration;
+        break;
+      case 'cluster':
+        tank.weapon = { ...WEAPONS.CLUSTER };
+        tank.weaponExpiresAt = now + WEAPONS.CLUSTER.duration;
+        break;
     }
   }
 
-  onExplosion(x, y, radius, damage, ownerId) {
-    // Area of effect damage to tanks
+  onExplosion(x, y, radius, damage, ownerId, ownerTeam) {
     for (const tank of this.getAllTanks()) {
       if (tank.health <= 0) continue;
+      if (this.mode === 'tdm' && ownerTeam && tank.team === ownerTeam) continue;
+
       const dist = Math.hypot(tank.x - x, tank.y - y);
       if (dist < radius + TANK_RADIUS) {
         const falloff = 1 - (dist / (radius + TANK_RADIUS));
@@ -656,7 +779,6 @@ class GameRoom {
       for (let c = minCol; c <= maxCol; c++) {
         const tile = this.map.grid[r][c];
         if (tile === TILE_STEEL || tile === TILE_BRICK) {
-          // AABB vs Circle
           const boxLeft = c * TILE_SIZE;
           const boxRight = boxLeft + TILE_SIZE;
           const boxTop = r * TILE_SIZE;
@@ -686,7 +808,6 @@ class GameRoom {
 
     const tile = this.map.grid[r][c];
     if (tile === TILE_STEEL || tile === TILE_BRICK) {
-      // Calculate collision normal
       const tileCenterX = c * TILE_SIZE + TILE_SIZE / 2;
       const tileCenterY = r * TILE_SIZE + TILE_SIZE / 2;
       const diffX = x - tileCenterX;
@@ -704,11 +825,10 @@ class GameRoom {
         const key = `${r}_${c}`;
         this.map.brickHealth[key] = (this.map.brickHealth[key] || 2) - 1;
         if (this.map.brickHealth[key] <= 0) {
-          this.map.grid[r][c] = 0; // Destroy block!
+          this.map.grid[r][c] = 0;
           delete this.map.brickHealth[key];
           this.destroyedBricks.push([r, c]);
           destroyedBrick = true;
-          // Chance to drop powerup from destroyed brick crate!
           if (Math.random() < 0.35) {
             this.spawnPowerup(c * TILE_SIZE + TILE_SIZE / 2, r * TILE_SIZE + TILE_SIZE / 2);
           }
@@ -738,7 +858,6 @@ class GameRoom {
     if (this.matchState === 'ended') return;
     this.matchState = 'ended';
 
-    // Build final summary
     const allTanks = this.getAllTanks();
     allTanks.sort((a, b) => b.kills - a.kills || b.score - a.score);
 
@@ -753,16 +872,15 @@ class GameRoom {
       won: idx === 0
     }));
 
-    // Save rankings persistently
     LeaderboardStore.recordMatch(summary);
 
     this.endSummary = {
       reason,
       winner: winner ? winner.name : 'Berabere',
-      leaderboard: summary
+      leaderboard: summary,
+      teamScores: this.teamScores
     };
 
-    // Auto-restart after 8 seconds
     setTimeout(() => {
       this.resetMatch();
     }, 8000);
@@ -773,6 +891,7 @@ class GameRoom {
     this.powerups = [];
     this.killFeed = [];
     this.destroyedBricks = [];
+    this.teamScores = { red: 0, blue: 0 };
     this.timeRemaining = this.matchDuration;
     this.map = MapData.generateMap(this.mapId);
     this.spawnInitialPowerups();
@@ -826,6 +945,8 @@ class GameRoom {
     return {
       roomId: this.roomId,
       roomName: this.name,
+      mode: this.mode,
+      teamScores: this.teamScores,
       matchState: this.matchState,
       timeRemaining: Math.ceil(this.timeRemaining),
       endSummary: this.endSummary,
@@ -839,6 +960,9 @@ class GameRoom {
         id: t.id,
         name: t.name,
         isBot: t.isBot,
+        team: t.team,
+        camo: t.camo,
+        tankClass: t.tankClass,
         x: Math.round(t.x * 10) / 10,
         y: Math.round(t.y * 10) / 10,
         vx: Math.round(t.vx * 10) / 10,
@@ -852,6 +976,10 @@ class GameRoom {
         maxShield: t.maxShield,
         weaponId: t.weapon.id,
         isDashing: t.isDashing,
+        dashCooldownEndsAt: t.dashCooldownEndsAt,
+        isBarrierActive: t.isBarrierActive,
+        barrierEndsAt: t.barrierEndsAt,
+        barrierCooldownEndsAt: t.barrierCooldownEndsAt,
         kills: t.kills,
         deaths: t.deaths,
         score: t.score,
@@ -869,7 +997,8 @@ class GameRoom {
         angle: Math.round(b.angle * 100) / 100,
         color: b.color,
         radius: b.radius,
-        weaponId: b.weaponId
+        weaponId: b.weaponId,
+        ownerTeam: b.ownerTeam
       })),
       powerups: this.powerups.map(pu => ({
         id: pu.id,
@@ -885,4 +1014,3 @@ class GameRoom {
 }
 
 module.exports = GameRoom;
-

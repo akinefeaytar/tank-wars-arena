@@ -197,6 +197,29 @@ class Renderer {
         ctx.restore();
       }
 
+      // 'E' Key Energy Barrier Shield (Full invulnerability dome)
+      if (tank.isBarrierActive) {
+        ctx.save();
+        const pulse = Math.sin(Date.now() / 120) * 2;
+        ctx.shadowColor = '#00f2fe';
+        ctx.shadowBlur = 20;
+        ctx.strokeStyle = '#00f2fe';
+        ctx.lineWidth = 3;
+        ctx.fillStyle = 'rgba(0, 242, 254, 0.2)';
+        ctx.beginPath();
+        ctx.arc(0, 0, 35 + pulse, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.setLineDash([8, 6]);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 32 + pulse, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
       // 1. Tank Chassis (Hull & Treads)
       ctx.save();
       ctx.rotate(bodyAngle);
@@ -218,6 +241,38 @@ class Renderer {
       ctx.beginPath();
       ctx.roundRect(-18, -13, 36, 26, 6);
       ctx.fill();
+
+      // Custom Camo Patterns
+      if (tank.camo === 'stripes') {
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-14, -12); ctx.lineTo(-8, 12);
+        ctx.moveTo(-4, -12); ctx.lineTo(2, 12);
+        ctx.moveTo(6, -12); ctx.lineTo(12, 12);
+        ctx.stroke();
+      } else if (tank.camo === 'carbon') {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = -16; i <= 16; i += 6) {
+          ctx.moveTo(i, -12); ctx.lineTo(i + 6, 12);
+          ctx.moveTo(i, 12); ctx.lineTo(i + 6, -12);
+        }
+        ctx.stroke();
+      } else if (tank.camo === 'digital') {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        ctx.fillRect(-12, -8, 6, 6);
+        ctx.fillRect(2, -4, 6, 6);
+        ctx.fillRect(-6, 2, 6, 6);
+        ctx.fillRect(8, 4, 5, 5);
+      } else if (tank.camo === 'neon') {
+        ctx.shadowColor = '#00f2fe';
+        ctx.shadowBlur = 10;
+        ctx.strokeStyle = '#00f2fe';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
 
       // Armor plating highlights
       ctx.strokeStyle = '#ffffff';
@@ -293,9 +348,10 @@ class Renderer {
     ctx.shadowBlur = 4;
 
     const streakIcon = tank.streak >= 3 ? '🔥 ' : '';
-    const nameText = `${tank.badge} ${streakIcon}${tank.name}`;
+    const teamBadge = tank.team === 'red' ? '🔴 ' : (tank.team === 'blue' ? '🔵 ' : '');
+    const nameText = `${teamBadge}${tank.badge} ${streakIcon}${tank.name}`;
 
-    ctx.fillStyle = tank.isBot ? '#ff5252' : '#ffffff';
+    ctx.fillStyle = tank.isBot ? (tank.team === 'red' ? '#ff4757' : (tank.team === 'blue' ? '#00d2d3' : '#ff5252')) : '#ffffff';
     ctx.fillText(nameText, 0, overheadY - 8);
 
     // Health Bar Container
@@ -346,6 +402,45 @@ class Renderer {
       } else if (b.weaponId === 'sniper') {
         // High speed laser bolt
         ctx.fillRect(-16, -2, 28, 4);
+      } else if (b.weaponId === 'plasma') {
+        // Glowing electric plasma orb
+        ctx.shadowColor = '#00ffcc';
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = '#00ffcc';
+        ctx.beginPath();
+        ctx.arc(0, 0, b.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(0, 0, b.radius * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (b.weaponId === 'bouncing_laser') {
+        // High-tech magenta energy beam
+        ctx.shadowColor = '#ff00ff';
+        ctx.shadowBlur = 14;
+        ctx.fillStyle = '#ff00ff';
+        ctx.fillRect(-14, -2.5, 26, 5);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-10, -1, 18, 2);
+      } else if (b.weaponId === 'flamethrower') {
+        // Fiery expanding flame burst
+        ctx.shadowColor = '#ff4500';
+        ctx.shadowBlur = 14;
+        ctx.fillStyle = Math.random() < 0.5 ? '#ffcc00' : '#ff4500';
+        ctx.beginPath();
+        ctx.arc(0, 0, b.radius + (Math.random() * 2), 0, Math.PI * 2);
+        ctx.fill();
+      } else if (b.weaponId === 'cluster' || b.weaponId === 'cluster_shard') {
+        // Neon green explosive bomblet
+        ctx.shadowColor = '#a8ff00';
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = '#a8ff00';
+        ctx.beginPath();
+        ctx.arc(0, 0, b.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
       } else {
         // Regular glowing round projectile
         ctx.beginPath();

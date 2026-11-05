@@ -41,15 +41,71 @@ class UIManager {
           triple: '🔥 Üçlü Namlu',
           sniper: '⚡ Raygun / Sniper',
           rocket: '🚀 Güdümlü Roket',
+          plasma: '🌌 Plazma Topu',
+          bouncing_laser: '🌀 Girdap Lazeri',
+          flamethrower: '🌋 Alev Topu',
+          cluster: '💣 Küme Bombası',
+          cluster_shard: '💥 Şarapnel',
           shotgun: '🟣 Pompalı'
         };
         wpnElem.textContent = names[localTank.weaponId] || 'Standart Top';
+      }
+
+      // Ability Cooldown Indicators (Shift Dash & E Barrier)
+      const now = Date.now();
+      const dashStatusElem = document.getElementById('hudDashStatus');
+      const dashIconElem = document.getElementById('hudDashIcon');
+      if (dashStatusElem) {
+        if (localTank.dashCooldownEndsAt && now < localTank.dashCooldownEndsAt) {
+          const cd = Math.ceil((localTank.dashCooldownEndsAt - now) / 1000);
+          dashStatusElem.textContent = `${cd}s`;
+          dashStatusElem.style.color = 'var(--text-muted)';
+          if (dashIconElem) dashIconElem.classList.remove('ability-ready');
+        } else {
+          dashStatusElem.textContent = 'HAZIR';
+          dashStatusElem.style.color = 'var(--accent-cyan)';
+          if (dashIconElem) dashIconElem.classList.add('ability-ready');
+        }
+      }
+
+      const barrierStatusElem = document.getElementById('hudBarrierStatus');
+      const barrierIconElem = document.getElementById('hudBarrierIcon');
+      if (barrierStatusElem) {
+        if (localTank.isBarrierActive) {
+          barrierStatusElem.textContent = 'AKTİF!';
+          barrierStatusElem.style.color = 'var(--accent-gold)';
+          if (barrierIconElem) barrierIconElem.classList.add('ability-ready');
+        } else if (localTank.barrierCooldownEndsAt && now < localTank.barrierCooldownEndsAt) {
+          const cd = Math.ceil((localTank.barrierCooldownEndsAt - now) / 1000);
+          barrierStatusElem.textContent = `${cd}s`;
+          barrierStatusElem.style.color = 'var(--text-muted)';
+          if (barrierIconElem) barrierIconElem.classList.remove('ability-ready');
+        } else {
+          barrierStatusElem.textContent = 'HAZIR';
+          barrierStatusElem.style.color = 'var(--accent-cyan)';
+          if (barrierIconElem) barrierIconElem.classList.add('ability-ready');
+        }
       }
 
       // Kills & Streak
       const scoreElem = document.getElementById('hudScoreStats');
       if (scoreElem) {
         scoreElem.textContent = `Skor: ${localTank.score} | Leş: ${localTank.kills} | Seri: ${localTank.streak}`;
+      }
+    }
+
+    // Team Score Header for TDM mode
+    const teamScoreElem = document.getElementById('hudTeamScoreBanner');
+    if (teamScoreElem) {
+      if (state.mode === 'tdm' && state.teamScores) {
+        teamScoreElem.style.display = 'flex';
+        teamScoreElem.innerHTML = `
+          <span style="color:#ff4757; font-weight:800; font-size:16px;">🔴 KIRMIZI: ${state.teamScores.red || 0}</span>
+          <span style="color:var(--text-muted); font-size:12px; margin: 0 6px;">VS</span>
+          <span style="color:#00d2d3; font-weight:800; font-size:16px;">🔵 MAVİ: ${state.teamScores.blue || 0}</span>
+        `;
+      } else {
+        teamScoreElem.style.display = 'none';
       }
     }
 

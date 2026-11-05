@@ -52,6 +52,198 @@ document.addEventListener('DOMContentLoaded', () => {
     if (roomCodeInput) roomCodeInput.value = inviteRoom;
   }
 
+  // Tank Customization (Garage) Management
+  let currentCustomization = {
+    color: '#00e5ff',
+    camo: 'none',
+    tankClass: 'balanced'
+  };
+
+  try {
+    const savedCustom = localStorage.getItem('tank_customization');
+    if (savedCustom) {
+      currentCustomization = { ...currentCustomization, ...JSON.parse(savedCustom) };
+    }
+  } catch (e) {
+    console.warn('Failed parsing saved customization', e);
+  }
+
+  const garagePreviewCanvas = document.getElementById('garagePreviewCanvas');
+  const previewClassName = document.getElementById('previewClassName');
+
+  function renderGaragePreview() {
+    if (!garagePreviewCanvas) return;
+    const ctx = garagePreviewCanvas.getContext('2d');
+    const w = garagePreviewCanvas.width;
+    const h = garagePreviewCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const cx = w / 2;
+    const cy = h / 2;
+    const isTitan = currentCustomization.tankClass === 'titan';
+    const isScout = currentCustomization.tankClass === 'scout';
+
+    const bodyW = isTitan ? 46 : isScout ? 36 : 40;
+    const bodyH = isTitan ? 54 : isScout ? 42 : 48;
+    const color = currentCustomization.color || '#00e5ff';
+    const camo = currentCustomization.camo || 'none';
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 4;
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(-bodyW/2 - 7, -bodyH/2, 6, bodyH);
+    ctx.fillRect(bodyW/2 + 1, -bodyH/2, 6, bodyH);
+    ctx.restore();
+
+    // Tracks
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(-bodyW/2 - 7, -bodyH/2, 6, bodyH);
+    ctx.fillRect(bodyW/2 + 1, -bodyH/2, 6, bodyH);
+
+    // Tread lines
+    ctx.fillStyle = '#0f172a';
+    for (let y = -bodyH/2; y < bodyH/2; y += 6) {
+      ctx.fillRect(-bodyW/2 - 7, y, 6, 2);
+      ctx.fillRect(bodyW/2 + 1, y, 6, 2);
+    }
+
+    // Chassis
+    ctx.fillStyle = '#0b0f19';
+    ctx.fillRect(-bodyW/2, -bodyH/2, bodyW, bodyH);
+
+    ctx.fillStyle = color;
+    ctx.fillRect(-bodyW/2 + 3, -bodyH/2 + 3, bodyW - 6, bodyH - 6);
+
+    // Camo overlay
+    if (camo === 'stripes') {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+      ctx.beginPath();
+      ctx.moveTo(-bodyW/2 + 5, -bodyH/2);
+      ctx.lineTo(bodyW/2 - 5, bodyH/2);
+      ctx.lineTo(bodyW/2 - 12, bodyH/2);
+      ctx.lineTo(-bodyW/2, -bodyH/2 + 8);
+      ctx.fill();
+    } else if (camo === 'carbon') {
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      for (let x = -bodyW/2 + 4; x < bodyW/2 - 4; x += 6) {
+        for (let y = -bodyH/2 + 4; y < bodyH/2 - 4; y += 6) {
+          ctx.fillRect(x, y, 3, 3);
+        }
+      }
+    } else if (camo === 'digital') {
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(-bodyW/4, -bodyH/4, 10, 10);
+      ctx.fillRect(4, 4, 8, 8);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(-bodyW/3, 2, 7, 7);
+      ctx.fillRect(2, -bodyH/3, 9, 9);
+    } else if (camo === 'neon') {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-bodyW/2 + 4, -bodyH/2 + 4, bodyW - 8, bodyH - 8);
+    }
+
+    // Turret Barrel
+    ctx.fillStyle = '#64748b';
+    ctx.fillRect(-3, -bodyH/2 - 14, 6, 18);
+
+    // Turret Center
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    if (previewClassName) {
+      const names = {
+        scout: '⚡ İZCİ (SCOUT) - HIZLI & ÇEVİK',
+        balanced: '🛡️ DENGELİ SAVAŞÇI - KUSURSUZ DENGE',
+        titan: '🦾 TİTAN - AĞIR ZIRH & YÜKSEK HP'
+      };
+      previewClassName.textContent = names[currentCustomization.tankClass] || 'DENGELİ SAVAŞÇI';
+    }
+  }
+
+  // Garage Modal wiring
+  const btnOpenGarageModal = document.getElementById('btnOpenGarageModal');
+  const garageModal = document.getElementById('garageModal');
+  const btnCloseGarageModal = document.getElementById('btnCloseGarageModal');
+  const btnSaveGarage = document.getElementById('btnSaveGarage');
+
+  if (btnOpenGarageModal && garageModal) {
+    btnOpenGarageModal.addEventListener('click', () => {
+      // Sync UI buttons to currentCustomization
+      document.querySelectorAll('.garage-class-card').forEach(b => {
+        b.classList.toggle('active', b.dataset.class === currentCustomization.tankClass);
+      });
+      document.querySelectorAll('.swatch-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.color.toLowerCase() === currentCustomization.color.toLowerCase());
+      });
+      document.querySelectorAll('.camo-card-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.camo === currentCustomization.camo);
+      });
+
+      renderGaragePreview();
+      garageModal.classList.add('active');
+    });
+  }
+
+  if (btnCloseGarageModal && garageModal) {
+    btnCloseGarageModal.addEventListener('click', () => {
+      garageModal.classList.remove('active');
+    });
+  }
+
+  // Class card clicks
+  document.querySelectorAll('.garage-class-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.garage-class-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      currentCustomization.tankClass = card.dataset.class;
+      renderGaragePreview();
+    });
+  });
+
+  // Color swatch clicks
+  document.querySelectorAll('.swatch-btn').forEach(swatch => {
+    swatch.addEventListener('click', () => {
+      document.querySelectorAll('.swatch-btn').forEach(s => s.classList.remove('active'));
+      swatch.classList.add('active');
+      currentCustomization.color = swatch.dataset.color;
+      renderGaragePreview();
+    });
+  });
+
+  // Camo clicks
+  document.querySelectorAll('.camo-card-btn').forEach(camoBtn => {
+    camoBtn.addEventListener('click', () => {
+      document.querySelectorAll('.camo-card-btn').forEach(c => c.classList.remove('active'));
+      camoBtn.classList.add('active');
+      currentCustomization.camo = camoBtn.dataset.camo;
+      renderGaragePreview();
+    });
+  });
+
+  if (btnSaveGarage && garageModal) {
+    btnSaveGarage.addEventListener('click', () => {
+      localStorage.setItem('tank_customization', JSON.stringify(currentCustomization));
+      garageModal.classList.remove('active');
+      window.UI.showToast('Tank kişiselleştirmesi kaydedildi ve kuşandı!');
+    });
+  }
+
   // Lobby Buttons
   const menuScreen = document.getElementById('menuScreen');
   const gameHUD = document.getElementById('gameHUD');
@@ -61,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('tank_player_name', name);
 
     window.audioManager.ensureContext();
-    client.joinGame(name, roomId);
+    client.joinGame(name, roomId, currentCustomization);
 
     menuScreen.classList.add('hidden');
     gameHUD.classList.remove('hidden');
@@ -98,12 +290,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const roomName = document.getElementById('customRoomName').value || `${creatorName}'in Özel Odası`;
       const botCount = parseInt(document.getElementById('customBotCount').value, 10);
       const mapId = document.getElementById('customMapSelect').value;
+      const mode = document.getElementById('customModeSelect') ? document.getElementById('customModeSelect').value : 'ffa';
+      const botDifficulty = document.getElementById('customBotDiffSelect') ? document.getElementById('customBotDiffSelect').value : 'normal';
 
       client.createRoom({
         creatorName,
         name: roomName,
         botCount,
-        mapId
+        mapId,
+        mode,
+        botDifficulty,
+        customization: currentCustomization
       }, (res) => {
         if (res && res.success) {
           createRoomModal.classList.remove('active');
@@ -112,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           // Copy invite link
           const inviteUrl = `${window.location.origin}/?room=${res.roomCode}`;
-          window.UI.showToast(`Özel Oda Açıldı! Davet Kodu: ${res.roomCode}`);
+          window.UI.showToast(`Özel Oda Açıldı! [${mode.toUpperCase()} - ${botDifficulty.toUpperCase()}] Davet Kodu: ${res.roomCode}`);
         }
       });
     });
